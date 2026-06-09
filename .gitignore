@@ -1,0 +1,22 @@
+# Environment secrets
+.env
+
+# Generated outputs (PDFs, PPTs)
+output/*.pdf
+output/*.pptx
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# IDE
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
