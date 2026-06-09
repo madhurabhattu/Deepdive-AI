@@ -2,35 +2,48 @@
 
 ## Core Principles
 
-### I. Offline & Privacy-First (NON-NEGOTIABLE)
-All document ingestion, vector calculations, indexing, and LLM inferences must occur completely offline on the local system. No proprietary codebase fragments or document chunks may be transmitted to external servers. All APIs must connect to local servers (e.g., local Ollama instance).
+### I. Topic-In, Report-Out (NON-NEGOTIABLE)
+The application's primary contract is: the user provides a research topic (plain text), and the system produces a structured research report. Every feature, page, and utility must serve this pipeline. Features that do not contribute to input → research → output are out of scope.
 
-### II. AST-Based Code Separation & Chunking
-When parsing code, the system must utilize Abstract Syntax Tree (AST) analyzers (or equivalent language-aware parser structures) to respect code blocks. Chunks must avoid breaking inside logical functions or classes where possible, prioritizing semantic boundaries over strict token counts.
+### II. AI-Powered, Not Just Retrieval
+All content generation (executive summaries, key insights, statistics, references) must be produced by an AI language model — not static templates or simple web scraping. The LLM is the engine; the app is the interface.
 
-### III. Separation of UI and Business Logic
-The UI (Streamlit pages) must serve strictly as a presentation and interaction layer. All heavy lifting, including folder crawling, vector store queries, memory buffering, and Ollama REST interactions, must be decoupled into testable modular packages within the `utils/` directory.
+### III. Output-First Design
+Every research run must produce at minimum two downloadable artefacts: a **PDF report** and a **PowerPoint presentation**. These are first-class outputs, not optional extras. The Streamlit UI must make downloading them the primary call-to-action after a run completes.
 
-### IV. Grounded Answers with Traceable Citations
-Any response generated in the interactive chat must contain explicit references (file names, line number ranges, and short code snippets) to the exact parts of the ingested workspace that were retrieved. Responses without verifiable references are unacceptable.
+### IV. Separation of Concerns
+- `app.py` — entry point and navigation only.
+- `pages/` — Streamlit page views (UI logic only, no business logic).
+- `utils/` — all AI calls, document generation, and data formatting. Pages import from `utils/`; `utils/` never imports from `pages/`.
+- `output/` — generated artefacts (PDFs, PPTs) written here; never committed to git.
 
-### V. Test Coverage & Code Quality
-All core modules inside `utils/` must be thoroughly covered by unit tests. A minimum threshold of **80% code coverage** must be maintained for any code merged into main, ensuring stability during future refactoring.
+### V. Structured, Validated Report Schema
+Every research run must produce a consistent, validated Python data structure (dataclass or TypedDict) before rendering or exporting. The schema must include:
+- `topic` (str)
+- `executive_summary` (str)
+- `key_insights` (list[str], min 3)
+- `statistics` (list[dict] with `label` and `value`)
+- `references` (list[dict] with `title`, `url`, `snippet`)
+
+Partial/malformed schemas must raise a recoverable error shown in the UI — never silently produce empty exports.
 
 ## Technology Constraints
 
-* **Frontend:** Streamlit multi-page structure (`app.py`, `pages/`).
-* **Storage:** Locally-persisted ChromaDB database.
-* **LLM Engine:** Local Ollama server interface.
-* **Language:** Python 3.10+ using standard formatting guidelines.
+- **Frontend:** Streamlit multi-page app (`app.py` + `pages/`).
+- **AI:** Google Gemini API (via `google-generativeai`) or configurable via `.env`.
+- **PDF generation:** `reportlab` or `fpdf2`.
+- **PPT generation:** `python-pptx`.
+- **Language:** Python 3.10+, type-annotated, formatted with `black`.
+- **Config:** All secrets (API keys) via environment variables; never hardcoded.
 
 ## Development Workflow
 
-1. **Spec-Driven Development:** All new features must begin by defining a feature specification (`spec.md`), technical design (`plan.md`), and actionable tasks (`tasks.md`) under the `specs/` folder.
-2. **Phase Completion Gate:** No implementation code may be written until the feature spec and plan are completed and approved.
-3. **Automated Testing:** All unit tests must run successfully before final verification.
+1. All features begin with a complete `spec.md` → `plan.md` → `tasks.md` in `specs/<id>-<name>/`.
+2. No implementation code is written until the spec is approved.
+3. The `output/` directory must be listed in `.gitignore`.
+4. Every utility function in `utils/` must have a corresponding unit test.
 
 ## Governance
-This constitution is the source of truth for all architectural decisions. Changes or amendments to these principles require document updates and version increments.
+This constitution supersedes all other conventions. Amendments require a version bump and ratification date update.
 
 **Version**: 1.0.0 | **Ratified**: 2026-06-09 | **Last Amended**: 2026-06-09
