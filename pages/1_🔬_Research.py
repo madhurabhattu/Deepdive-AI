@@ -247,12 +247,12 @@ if generate_clicked:
         with st.spinner(f"🔍 Researching **{display_topic}**… This may take up to 30 seconds."):
             try:
                 raw_json = generate_research_report(topic.strip())
-                report = parse_report(raw_json, topic=topic.strip())
-                st.session_state["report"] = report
+                parsed_report = parse_report(raw_json, topic=topic.strip())
+                st.session_state["report"] = parsed_report
                 st.session_state["generating"] = False
                 st.success("✅ Report generated successfully!")
 
-            except EnvironmentError as exc:
+            except OSError as exc:
                 # T014: API key missing
                 st.session_state["generating"] = False
                 st.error(

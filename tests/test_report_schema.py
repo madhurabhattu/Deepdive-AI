@@ -9,10 +9,10 @@ Covers:
 """
 
 import json
+
 import pytest
 
 from utils.report_schema import ResearchReport, parse_report
-
 
 # ── Fixtures ────────────────────────────────────────────────────────
 

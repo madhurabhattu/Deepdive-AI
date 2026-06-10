@@ -8,7 +8,6 @@ All business logic lives in utils/; pages handle UI only (Constitution §IV).
 from __future__ import annotations
 
 import logging
-import os
 from pathlib import Path
 
 import streamlit as st

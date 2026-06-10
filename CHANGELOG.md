@@ -8,7 +8,13 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
-> Changes staged for the next release will be listed here.
+### Added
+
+- **Compliance and Repository Standards**
+  - `AGENTS.md` containing repository-level instructions for AI coding agents.
+  - Ruff and MyPy configurations added to `pyproject.toml` for standard Python code linting and type checking.
+  - git-cliff configuration (`cliff.toml`) for automated changelog generation.
+  - Updated `.gitignore` to completely ignore the output folder and caches.
 
 ---
 

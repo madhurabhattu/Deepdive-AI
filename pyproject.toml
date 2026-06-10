@@ -1,0 +1,44 @@
+[tool.ruff]
+# Target Python version
+target-version = "py310"
+line-length = 88
+
+[tool.ruff.lint]
+# Enable rules for Pyflakes (F), pycodestyle (E, W), isort (I), pep8-naming (N),
+# flake8-bugbear (B), pyupgrade (UP), flake8-comprehensions (C4), and flake8-simplify (SIM)
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # Pyflakes
+    "I",   # isort
+    "N",   # pep8-naming
+    "B",   # flake8-bugbear
+    "UP",  # pyupgrade
+    "C4",  # flake8-comprehensions
+    "SIM", # flake8-simplify
+    "RUF"  # Ruff-specific rules
+]
+ignore = []
+
+[tool.ruff.lint.isort]
+known-first-party = ["utils"]
+
+[tool.mypy]
+# Enable MyPy settings for strict quality checking
+python_version = "3.10"
+warn_unused_configs = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+strict_equality = true
+extra_checks = true
+check_untyped_defs = true
+
+# Ignore missing imports for third-party libraries without type annotations
+[[tool.mypy.overrides]]
+module = [
+    "streamlit.*",
+    "google.*",
+    "reportlab.*",
+    "pptx.*"
+]
+ignore_missing_imports = true

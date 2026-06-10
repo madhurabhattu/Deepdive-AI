@@ -20,8 +20,8 @@ from pathlib import Path
 
 from pptx import Presentation
 from pptx.dml.color import RGBColor
-from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
-from pptx.util import Emu, Inches, Pt
+from pptx.enum.text import PP_ALIGN
+from pptx.util import Inches, Pt
 
 from utils.report_schema import ResearchReport
 

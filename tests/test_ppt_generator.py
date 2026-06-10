@@ -9,11 +9,12 @@ Covers:
 """
 
 import os
+
 import pytest
 from pptx import Presentation as PptxPresentation
 
-from utils.report_schema import ResearchReport
 from utils.ppt_generator import build_ppt, sanitise_filename
+from utils.report_schema import ResearchReport
 
 
 @pytest.fixture

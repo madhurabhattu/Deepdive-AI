@@ -18,8 +18,8 @@ import logging
 import os
 from pathlib import Path
 
-from dotenv import load_dotenv
 import google.generativeai as genai
+from dotenv import load_dotenv
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +37,7 @@ def _get_api_key() -> str:
     """
     key = os.getenv("GEMINI_API_KEY", "").strip()
     if not key or key == "your_gemini_api_key_here":
-        raise EnvironmentError(
+        raise OSError(
             "GEMINI_API_KEY is not configured. "
             "Please set it in your .env file. "
             "See .env.example for the expected format."

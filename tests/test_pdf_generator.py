@@ -9,10 +9,11 @@ Covers:
 """
 
 import os
+
 import pytest
 
-from utils.report_schema import ResearchReport
 from utils.pdf_generator import build_pdf, sanitise_filename
+from utils.report_schema import ResearchReport
 
 
 @pytest.fixture

@@ -1,16 +1,17 @@
 # Environment secrets
 .env
 
-# Generated outputs (PDFs, PPTs)
-output/*.pdf
-output/*.pptx
+# Generated outputs (PDFs, PPTs, etc.)
+output/
 
 # Python
 __pycache__/
 *.py[cod]
+*.pyc
 *.egg-info/
 .venv/
 venv/
+env/
 
 # IDE
 .idea/
