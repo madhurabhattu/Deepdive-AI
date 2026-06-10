@@ -1,0 +1,11 @@
+# Gitleaks configuration file
+# Reference: https://github.com/gitleaks/gitleaks
+
+[allowlist]
+description = "Global allowlist for files that contain templates/documentation"
+paths = [
+    '''\.env\.example$''',
+    '''AGENTS\.md$''',
+    '''README\.md$''',
+    '''CHANGELOG\.md$'''
+]

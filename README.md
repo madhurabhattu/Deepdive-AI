@@ -124,6 +124,31 @@ pytest tests/ -v --tb=short
 - **Python 3.10+**
 - **Internet connection** (for AI API calls)
 
+## 🔒 Secret Scanning
+
+This repository uses **Gitleaks** to detect and prevent secrets (like API keys, passwords, and private tokens) from being committed.
+
+### Running Secret Scanning Locally
+
+#### 1. Using Gitleaks CLI
+You can install and run Gitleaks directly to scan the repository:
+```bash
+gitleaks detect --verbose
+```
+
+#### 2. Using pre-commit
+Pre-commit hooks are configured to scan for secrets before every commit. To install and configure them:
+```bash
+# Install pre-commit
+pip install pre-commit
+
+# Install the git hooks
+pre-commit install
+
+# Manually run secret scanning on all files
+pre-commit run gitleaks --all-files
+```
+
 ---
 
 ## 📄 License
