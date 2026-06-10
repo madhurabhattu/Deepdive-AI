@@ -1,0 +1,33 @@
+# Git
+.git
+.github
+
+# Environment variables / secrets
+.env
+.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.venv/
+venv/
+env/
+
+# IDE / Editor configuration
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Docker
+Dockerfile
+.dockerignore
+
+# Testing
+.pytest_cache/
+tests/
+
+# Outputs
+output/
