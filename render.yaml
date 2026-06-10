@@ -1,0 +1,13 @@
+# Render Blueprint specification for deploying DeepDive AI
+# Reference: https://render.com/docs/blueprints
+
+services:
+  - type: web
+    name: deepdive-ai
+    runtime: docker
+    plan: starter
+    envVars:
+      - key: GEMINI_API_KEY
+        sync: false # Requires manual input in the Render Dashboard
+      - key: PORT
+        value: 8501
