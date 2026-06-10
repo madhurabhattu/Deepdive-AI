@@ -71,9 +71,9 @@ def parse_report(raw_json: str, topic: str) -> ResearchReport:
     # ── 3. Extract and validate list fields ─────────────────────────
     key_insights = data.get("key_insights", [])
     if not isinstance(key_insights, list) or len(key_insights) < 3:
+        got = len(key_insights) if isinstance(key_insights, list) else 'non-list'
         raise ValueError(
-            f"'key_insights' must be a list with at least 3 items "
-            f"(got {len(key_insights) if isinstance(key_insights, list) else 'non-list'})."
+            f"'key_insights' must be a list with at least 3 items (got {got})."
         )
     # Ensure every insight is a non-empty string
     key_insights = [str(i).strip() for i in key_insights if str(i).strip()]

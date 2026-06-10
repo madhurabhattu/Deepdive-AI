@@ -66,8 +66,8 @@ def _add_textbox(
     alignment: PP_ALIGN = PP_ALIGN.LEFT,
 ) -> None:
     """Add a simple text box to a slide."""
-    txBox = slide.shapes.add_textbox(left, top, width, height)
-    tf = txBox.text_frame
+    tx_box = slide.shapes.add_textbox(left, top, width, height)
+    tf = tx_box.text_frame
     tf.word_wrap = True
     p = tf.paragraphs[0]
     p.text = text
@@ -99,9 +99,6 @@ def build_ppt(report: ResearchReport) -> str:
     prs = Presentation()
     prs.slide_width = Inches(13.333)
     prs.slide_height = Inches(7.5)
-
-    slide_width = prs.slide_width
-    slide_height = prs.slide_height
 
     # ── Slide 1: Title Slide ─────────────────────────────────────────
     slide = prs.slides.add_slide(prs.slide_layouts[6])  # blank layout
@@ -148,10 +145,10 @@ def build_ppt(report: ResearchReport) -> str:
     )
 
     # Summary body
-    txBox = slide.shapes.add_textbox(
+    tx_box = slide.shapes.add_textbox(
         Inches(0.8), Inches(1.6), Inches(11.5), Inches(5)
     )
-    tf = txBox.text_frame
+    tf = tx_box.text_frame
     tf.word_wrap = True
     p = tf.paragraphs[0]
     p.text = report.executive_summary
@@ -170,17 +167,14 @@ def build_ppt(report: ResearchReport) -> str:
         font_size=28, bold=True, color=_PRIMARY,
     )
 
-    txBox = slide.shapes.add_textbox(
+    tx_box = slide.shapes.add_textbox(
         Inches(0.8), Inches(1.6), Inches(11.5), Inches(5.2)
     )
-    tf = txBox.text_frame
+    tf = tx_box.text_frame
     tf.word_wrap = True
 
     for idx, insight in enumerate(report.key_insights):
-        if idx == 0:
-            p = tf.paragraphs[0]
-        else:
-            p = tf.add_paragraph()
+        p = tf.paragraphs[0] if idx == 0 else tf.add_paragraph()
         p.text = f"▸  {insight}"
         p.font.size = Pt(15)
         p.font.color.rgb = _DARK_TEXT
@@ -251,17 +245,14 @@ def build_ppt(report: ResearchReport) -> str:
         font_size=28, bold=True, color=_PRIMARY,
     )
 
-    txBox = slide.shapes.add_textbox(
+    tx_box = slide.shapes.add_textbox(
         Inches(0.8), Inches(1.6), Inches(11.5), Inches(5.2)
     )
-    tf = txBox.text_frame
+    tf = tx_box.text_frame
     tf.word_wrap = True
 
     for idx, ref in enumerate(report.references):
-        if idx == 0:
-            p = tf.paragraphs[0]
-        else:
-            p = tf.add_paragraph()
+        p = tf.paragraphs[0] if idx == 0 else tf.add_paragraph()
 
         title = ref.get("title", "Untitled")
         url = ref.get("url", "")

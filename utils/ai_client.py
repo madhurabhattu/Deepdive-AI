@@ -18,8 +18,9 @@ import logging
 import os
 from pathlib import Path
 
-import google.generativeai as genai
 from dotenv import load_dotenv
+from google import genai
+from google.genai import types
 
 logger = logging.getLogger(__name__)
 
@@ -70,11 +71,31 @@ Return your response as a **single JSON object** with exactly these keys:
     {{"label": "<metric name>", "value": "<metric value>"}}
   ],
   "references": [
-    {{"title": "<source title>", "url": "<source URL>", "snippet": "<1-2 sentence description>"}},
-    {{"title": "<source title>", "url": "<source URL>", "snippet": "<1-2 sentence description>"}},
-    {{"title": "<source title>", "url": "<source URL>", "snippet": "<1-2 sentence description>"}},
-    {{"title": "<source title>", "url": "<source URL>", "snippet": "<1-2 sentence description>"}},
-    {{"title": "<source title>", "url": "<source URL>", "snippet": "<1-2 sentence description>"}}
+    {{
+      "title": "<source title>",
+      "url": "<source URL>",
+      "snippet": "<1-2 sentence description>"
+    }},
+    {{
+      "title": "<source title>",
+      "url": "<source URL>",
+      "snippet": "<1-2 sentence description>"
+    }},
+    {{
+      "title": "<source title>",
+      "url": "<source URL>",
+      "snippet": "<1-2 sentence description>"
+    }},
+    {{
+      "title": "<source title>",
+      "url": "<source URL>",
+      "snippet": "<1-2 sentence description>"
+    }},
+    {{
+      "title": "<source title>",
+      "url": "<source URL>",
+      "snippet": "<1-2 sentence description>"
+    }}
   ]
 }}
 
@@ -108,22 +129,26 @@ def generate_research_report(topic: str) -> str:
         If the Gemini API call fails for any reason.
     """
     api_key = _get_api_key()
-    genai.configure(api_key=api_key)
+    client = genai.Client(api_key=api_key)
 
     prompt = _RESEARCH_PROMPT_TEMPLATE.format(topic=topic)
 
     try:
-        model = genai.GenerativeModel("gemini-2.5-flash")
-        response = model.generate_content(
-            prompt,
-            generation_config=genai.types.GenerationConfig(
+        response = client.models.generate_content(
+            model="gemini-2.5-flash-lite",
+            contents=prompt,
+            config=types.GenerateContentConfig(
                 response_mime_type="application/json",
                 temperature=0.7,
             ),
         )
 
         raw_text = response.text.strip()
-        logger.info("Gemini returned %d characters for topic '%s'", len(raw_text), topic)
+        logger.info(
+            "Gemini returned %d characters for topic '%s'",
+            len(raw_text),
+            topic,
+        )
 
         # Quick sanity check: is this parseable JSON?
         json.loads(raw_text)

@@ -190,7 +190,8 @@ st.markdown(
     """
     <div class="main-header">
         <h1>🔬 Research Report Generator</h1>
-        <p>Enter a topic and let AI generate a comprehensive research report for you.</p>
+        <p>Enter a topic and let AI generate a comprehensive
+        research report for you.</p>
     </div>
     """,
     unsafe_allow_html=True,
@@ -244,7 +245,11 @@ if generate_clicked:
         st.session_state["ppt_path"] = None
 
         # T011: Generate report with spinner
-        with st.spinner(f"🔍 Researching **{display_topic}**… This may take up to 30 seconds."):
+        spinner_msg = (
+            f"🔍 Researching **{display_topic}**… "
+            "This may take up to 30 seconds."
+        )
+        with st.spinner(spinner_msg):
             try:
                 raw_json = generate_research_report(topic.strip())
                 parsed_report = parse_report(raw_json, topic=topic.strip())
@@ -351,7 +356,7 @@ if report is not None:
     for row_start in range(0, len(stats), 3):
         row_stats = stats[row_start : row_start + 3]
         cols = st.columns(len(row_stats))
-        for col, stat in zip(cols, row_stats):
+        for col, stat in zip(cols, row_stats, strict=True):
             with col:
                 st.markdown(
                     f"""

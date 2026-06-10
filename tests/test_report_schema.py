@@ -27,7 +27,7 @@ def _make_valid_data() -> dict:
         ],
         "statistics": [
             {"label": "Market Size (2025)", "value": "$8.6 billion"},
-            {"label": "CAGR 2025–2030", "value": "32.7%"},
+            {"label": "CAGR 2025-2030", "value": "32.7%"},
             {"label": "Active Research Labs", "value": "200+"},
         ],
         "references": [
