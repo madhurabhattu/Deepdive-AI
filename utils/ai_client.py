@@ -7,7 +7,7 @@ string for downstream parsing by report_schema.parse_report().
 Responsibilities:
 - Load GEMINI_API_KEY from environment (via python-dotenv).
 - Construct the research prompt.
-- Call gemini-1.5-flash and return raw JSON.
+- Call gemini-2.5-flash and return raw JSON.
 - Raise RuntimeError on API failures.
 """
 
@@ -113,7 +113,7 @@ def generate_research_report(topic: str) -> str:
     prompt = _RESEARCH_PROMPT_TEMPLATE.format(topic=topic)
 
     try:
-        model = genai.GenerativeModel("gemini-1.5-flash")
+        model = genai.GenerativeModel("gemini-2.5-flash")
         response = model.generate_content(
             prompt,
             generation_config=genai.types.GenerationConfig(
