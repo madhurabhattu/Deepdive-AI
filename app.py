@@ -12,7 +12,7 @@ from pathlib import Path
 
 import streamlit as st
 
-from utils.ai_client import OLLAMA_MODELS
+from utils.ai_client import OLLAMA_MODELS, is_ollama_available
 from utils.localization import LANGUAGES, detect_browser_language, get_text
 
 # ── Logging Configuration ───────────────────────────────────────────
@@ -37,7 +37,7 @@ st.set_page_config(
 if "ui_lang" not in st.session_state:
     st.session_state["ui_lang"] = detect_browser_language()
 if "ai_provider" not in st.session_state:
-    st.session_state["ai_provider"] = "gemini"
+    st.session_state["ai_provider"] = "gemini_builtin"
 if "byok_api_key" not in st.session_state:
     st.session_state["byok_api_key"] = ""
 if "ollama_model" not in st.session_state:
@@ -330,9 +330,16 @@ with st.sidebar:
     # ── AI Provider selector ──────────────────────────────────────
     st.markdown("#### 🤖 AI Provider")
     provider_options = {
-        "gemini": "☁️ Gemini API",
+        "gemini_builtin": "☁️ Built-in Gemini",
+        "gemini_byok": "🔑 Gemini (Bring Your Own Key)",
         "ollama": "🖥️ Ollama Local",
     }
+
+    # Map old provider values to new ones gracefully if needed
+    current_provider = st.session_state["ai_provider"]
+    if current_provider == "gemini" or current_provider not in provider_options:
+        st.session_state["ai_provider"] = "gemini_builtin"
+
     selected_provider = st.selectbox(
         "AI Provider",
         options=list(provider_options.keys()),
@@ -347,7 +354,25 @@ with st.sidebar:
         st.session_state["ai_provider"] = selected_provider
         st.rerun()
 
-    if st.session_state["ai_provider"] == "gemini":
+    if st.session_state["ai_provider"] == "gemini_builtin":
+        st.caption(
+            "☁️ **Built-in Gemini**: Uses the application's pre-configured "
+            "Gemini API key from Streamlit secrets. Works immediately for all users."
+        )
+        st.markdown(
+            "<div style='"
+            "background:rgba(124,58,237,0.12);"
+            "border-left:3px solid #7C3AED;"
+            "padding:6px 10px;border-radius:6px;"
+            "font-size:0.78rem;color:#A855F7;margin-top:4px'"
+            ">☁️ Provider: Built-in Gemini</div>",
+            unsafe_allow_html=True,
+        )
+    elif st.session_state["ai_provider"] == "gemini_byok":
+        st.caption(
+            "🔑 **BYOK Gemini**: Use your personal Gemini API key. "
+            "Falls back to built-in if left blank."
+        )
         # ── BYOK key input ────────────────────────────────────────
         byok_input = st.text_input(
             "🔑 Gemini API Key",
@@ -362,7 +387,6 @@ with st.sidebar:
         )
         st.session_state["byok_api_key"] = byok_input
         st.caption(
-            "Using **Gemini API** · "
             "[Get a free key](https://ai.google.dev)"
         )
         st.markdown(
@@ -371,10 +395,14 @@ with st.sidebar:
             "border-left:3px solid #7C3AED;"
             "padding:6px 10px;border-radius:6px;"
             "font-size:0.78rem;color:#A855F7;margin-top:4px'"
-            ">☁️ Provider: Gemini API</div>",
+            ">☁️ Provider: BYOK Gemini</div>",
             unsafe_allow_html=True,
         )
-    else:
+    elif st.session_state["ai_provider"] == "ollama":
+        st.caption(
+            "🖥️ **Ollama Local**: Runs models locally on your machine. "
+            "Requires Ollama to be running on localhost:11434."
+        )
         # ── Ollama model selector ─────────────────────────────────
         selected_model = st.selectbox(
             "🧠 Local Model",
@@ -387,19 +415,23 @@ with st.sidebar:
             key="ollama_model_selector_app",
         )
         st.session_state["ollama_model"] = selected_model
-        st.caption(
-            "Requires **Ollama** running locally on port 11434. "
-            "[Install Ollama](https://ollama.com/download)"
-        )
-        st.markdown(
-            "<div style='"
-            "background:rgba(16,185,129,0.12);"
-            "border-left:3px solid #10B981;"
-            "padding:6px 10px;border-radius:6px;"
-            "font-size:0.78rem;color:#34D399;margin-top:4px'"
-            f">🖥️ Provider: Ollama · {selected_model}</div>",
-            unsafe_allow_html=True,
-        )
+
+        # Non-blocking connection check
+        if not is_ollama_available():
+            st.warning(
+                "🖥️ **Ollama not reachable.** "
+                "Make sure Ollama is installed and running (`ollama serve`)."
+            )
+        else:
+            st.markdown(
+                "<div style='"
+                "background:rgba(16,185,129,0.12);"
+                "border-left:3px solid #10B981;"
+                "padding:6px 10px;border-radius:6px;"
+                "font-size:0.78rem;color:#34D399;margin-top:4px'"
+                f">🖥️ Provider: Ollama · {selected_model}</div>",
+                unsafe_allow_html=True,
+            )
 
     st.divider()
     st.markdown(
