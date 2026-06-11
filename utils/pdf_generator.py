@@ -2,13 +2,6 @@
 DeepDive AI — PDF Report Generator
 
 Generates a professionally formatted PDF from a ResearchReport using ReportLab.
-
-Output layout:
-  Page 1 — Title + topic + date
-  Page 2 — Executive Summary
-  Page 3 — Key Insights (bulleted list)
-  Page 4 — Statistics (two-column table)
-  Page 5 — References (numbered list with URLs)
 """
 
 from __future__ import annotations
@@ -23,6 +16,8 @@ from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import inch, mm
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import (
     PageBreak,
     Paragraph,
@@ -32,6 +27,8 @@ from reportlab.platypus import (
     TableStyle,
 )
 
+from utils.font_manager import ensure_fonts_exist, get_font_path
+from utils.localization import get_text
 from utils.report_schema import ResearchReport
 
 logger = logging.getLogger(__name__)
@@ -54,13 +51,46 @@ def sanitise_filename(topic: str) -> str:
     return clean[:80] if len(clean) > 80 else clean
 
 
-def _get_styles() -> dict[str, ParagraphStyle]:
+def _get_pdf_font_name(lang: str) -> str:
+    """Return appropriate font name based on language selection."""
+    if lang in ["hi", "mr"]:
+        return "NotoSansDevanagari"
+    elif lang == "te":
+        return "NotoSansTelugu"
+    return "Helvetica"
+
+
+def _register_indic_fonts() -> None:
+    """Download and register Noto Sans fonts for PDF generation."""
+    try:
+        ensure_fonts_exist()
+        # Register Noto Sans Devanagari (Regular and Bold alias to
+        # avoid bold missing error)
+        dev_path = get_font_path("NotoSansDevanagari-Regular.ttf")
+        pdfmetrics.registerFont(TTFont("NotoSansDevanagari", dev_path))
+        pdfmetrics.registerFont(TTFont("NotoSansDevanagari-Bold", dev_path))
+
+        # Register Noto Sans Telugu (Regular and Bold alias)
+        te_path = get_font_path("NotoSansTelugu-Regular.ttf")
+        pdfmetrics.registerFont(TTFont("NotoSansTelugu", te_path))
+        pdfmetrics.registerFont(TTFont("NotoSansTelugu-Bold", te_path))
+    except Exception as exc:
+        logger.error("Failed to register Indic fonts: %s", exc)
+
+
+def _get_styles(lang: str = "en") -> dict[str, ParagraphStyle]:
     """Build custom paragraph styles for the PDF."""
     base = getSampleStyleSheet()
+    font_name = _get_pdf_font_name(lang)
+    bold_font_name = (
+        f"{font_name}-Bold" if lang in ["hi", "mr", "te"] else "Helvetica-Bold"
+    )
+
     return {
         "cover_title": ParagraphStyle(
             "CoverTitle",
             parent=base["Title"],
+            fontName=bold_font_name,
             fontSize=28,
             textColor=_PRIMARY,
             alignment=TA_CENTER,
@@ -70,6 +100,7 @@ def _get_styles() -> dict[str, ParagraphStyle]:
         "cover_subtitle": ParagraphStyle(
             "CoverSubtitle",
             parent=base["Normal"],
+            fontName=font_name,
             fontSize=14,
             textColor=_ACCENT,
             alignment=TA_CENTER,
@@ -78,6 +109,7 @@ def _get_styles() -> dict[str, ParagraphStyle]:
         "cover_date": ParagraphStyle(
             "CoverDate",
             parent=base["Normal"],
+            fontName=font_name,
             fontSize=11,
             textColor=_TEXT_GRAY,
             alignment=TA_CENTER,
@@ -86,6 +118,7 @@ def _get_styles() -> dict[str, ParagraphStyle]:
         "section_heading": ParagraphStyle(
             "SectionHeading",
             parent=base["Heading1"],
+            fontName=bold_font_name,
             fontSize=18,
             textColor=_PRIMARY,
             spaceBefore=20,
@@ -96,6 +129,7 @@ def _get_styles() -> dict[str, ParagraphStyle]:
         "body": ParagraphStyle(
             "Body",
             parent=base["Normal"],
+            fontName=font_name,
             fontSize=11,
             textColor=_TEXT_DARK,
             alignment=TA_JUSTIFY,
@@ -105,6 +139,7 @@ def _get_styles() -> dict[str, ParagraphStyle]:
         "bullet": ParagraphStyle(
             "Bullet",
             parent=base["Normal"],
+            fontName=font_name,
             fontSize=11,
             textColor=_TEXT_DARK,
             leading=16,
@@ -115,6 +150,7 @@ def _get_styles() -> dict[str, ParagraphStyle]:
         "ref_title": ParagraphStyle(
             "RefTitle",
             parent=base["Normal"],
+            fontName=bold_font_name,
             fontSize=11,
             textColor=_ACCENT,
             leading=14,
@@ -123,6 +159,7 @@ def _get_styles() -> dict[str, ParagraphStyle]:
         "ref_snippet": ParagraphStyle(
             "RefSnippet",
             parent=base["Normal"],
+            fontName=font_name,
             fontSize=10,
             textColor=_TEXT_GRAY,
             leading=13,
@@ -132,13 +169,15 @@ def _get_styles() -> dict[str, ParagraphStyle]:
     }
 
 
-def build_pdf(report: ResearchReport) -> str:
-    """Generate a multi-page PDF report and return the filepath.
+def build_pdf(report: ResearchReport, lang: str = "en") -> str:
+    """Generate a multi-page localized PDF report and return the filepath.
 
     Parameters
     ----------
     report : ResearchReport
         A validated research report dataclass.
+    lang : str
+        The language code ('en', 'hi', 'mr', 'te') for the PDF layout.
 
     Returns
     -------
@@ -149,35 +188,48 @@ def build_pdf(report: ResearchReport) -> str:
 
     filename = f"{sanitise_filename(report.topic)}_report.pdf"
     filepath = OUTPUT_DIR / filename
-    styles = _get_styles()
+
+    if lang in ["hi", "mr", "te"]:
+        _register_indic_fonts()
+
+    styles = _get_styles(lang)
     story: list = []
     date_str = datetime.now().strftime("%B %d, %Y")
+    font_name = _get_pdf_font_name(lang)
+    bold_font_name = (
+        f"{font_name}-Bold" if lang in ["hi", "mr", "te"] else "Helvetica-Bold"
+    )
 
     # ── Cover Page ───────────────────────────────────────────────────
     story.append(Spacer(1, 2 * inch))
-    story.append(Paragraph("🔬 DeepDive AI", styles["cover_subtitle"]))
+    story.append(Paragraph(get_text("app_title", lang), styles["cover_subtitle"]))
     story.append(Spacer(1, 0.3 * inch))
     story.append(Paragraph(report.topic, styles["cover_title"]))
     story.append(Spacer(1, 0.3 * inch))
-    story.append(Paragraph("AI-Generated Research Report", styles["cover_subtitle"]))
-    story.append(Paragraph(f"Generated on {date_str}", styles["cover_date"]))
+    story.append(Paragraph(get_text("app_tagline", lang), styles["cover_subtitle"]))
+    story.append(
+        Paragraph(
+            f"{get_text('built_with', lang)} DeepDive AI — {date_str}",
+            styles["cover_date"],
+        )
+    )
     story.append(PageBreak())
 
     # ── Executive Summary & Background Context ───────────────────────
-    story.append(Paragraph("Executive Summary", styles["section_heading"]))
+    story.append(
+        Paragraph(get_text("feat_summary_title", lang), styles["section_heading"])
+    )
     story.append(Spacer(1, 4 * mm))
     story.append(Paragraph(report.executive_summary, styles["body"]))
     story.append(Spacer(1, 6 * mm))
 
-    story.append(Paragraph("Background &amp; Context", styles["section_heading"]))
+    story.append(Paragraph(get_text("sec_background", lang), styles["section_heading"]))
     story.append(Spacer(1, 4 * mm))
     story.append(Paragraph(report.background_context, styles["body"]))
     story.append(PageBreak())
 
     # ── Core Concepts ────────────────────────────────────────────────
-    story.append(
-        Paragraph("Core Concepts &amp; Terminology", styles["section_heading"])
-    )
+    story.append(Paragraph(get_text("sec_concepts", lang), styles["section_heading"]))
     story.append(Spacer(1, 4 * mm))
     for concept in report.core_concepts:
         term = concept.get("term", "")
@@ -187,17 +239,33 @@ def build_pdf(report: ResearchReport) -> str:
     story.append(PageBreak())
 
     # ── Key Insights ─────────────────────────────────────────────────
-    story.append(Paragraph("Key Insights", styles["section_heading"]))
+    story.append(
+        Paragraph(get_text("feat_insights_title", lang), styles["section_heading"])
+    )
     story.append(Spacer(1, 4 * mm))
     for idx, insight in enumerate(report.key_insights, start=1):
         story.append(Paragraph(f"<b>{idx}.</b>  {insight}", styles["bullet"]))
     story.append(PageBreak())
 
     # ── Statistics ───────────────────────────────────────────────────
-    story.append(Paragraph("Statistics &amp; Data", styles["section_heading"]))
+    story.append(
+        Paragraph(get_text("feat_stats_title", lang), styles["section_heading"])
+    )
     story.append(Spacer(1, 4 * mm))
 
-    table_data = [["Metric", "Value"]]
+    # Translate column headers
+    metric_label = get_text("supporting_data", lang)
+    value_label = get_text("supporting_data", lang) + " " + "Value"  # e.g. "డేటా విలువ"
+    if lang == "hi":
+        value_label = "डेटा मान"
+    elif lang == "mr":
+        value_label = "डेटा मूल्य"
+    elif lang == "te":
+        value_label = "డేటా విలువ"
+    else:
+        value_label = "Value"
+
+    table_data = [[metric_label, value_label]]
     for stat in report.statistics:
         table_data.append([stat.get("label", ""), stat.get("value", "")])
 
@@ -208,7 +276,8 @@ def build_pdf(report: ResearchReport) -> str:
             [
                 ("BACKGROUND", (0, 0), (-1, 0), _PRIMARY),
                 ("TEXTCOLOR", (0, 0), (-1, 0), _WHITE),
-                ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                ("FONTNAME", (0, 0), (-1, 0), bold_font_name),
+                ("FONTNAME", (0, 1), (-1, -1), font_name),
                 ("FONTSIZE", (0, 0), (-1, 0), 12),
                 ("FONTSIZE", (0, 1), (-1, -1), 11),
                 ("ALIGN", (0, 0), (-1, -1), "LEFT"),
@@ -226,11 +295,7 @@ def build_pdf(report: ResearchReport) -> str:
     story.append(PageBreak())
 
     # ── Benefits, Challenges & Risks ─────────────────────────────────
-    story.append(
-        Paragraph(
-            "Benefits, Challenges &amp; Risks Analysis", styles["section_heading"]
-        )
-    )
+    story.append(Paragraph(get_text("sec_benefits", lang), styles["section_heading"]))
     story.append(Spacer(1, 4 * mm))
     for it in report.benefits_challenges_risks:
         item_name = it.get("item", "")
@@ -259,11 +324,7 @@ def build_pdf(report: ResearchReport) -> str:
     story.append(PageBreak())
 
     # ── Real-World Applications ──────────────────────────────────────
-    story.append(
-        Paragraph(
-            "Real-World Applications &amp; Case Studies", styles["section_heading"]
-        )
-    )
+    story.append(Paragraph(get_text("sec_apps", lang), styles["section_heading"]))
     story.append(Spacer(1, 4 * mm))
     for app in report.real_world_applications:
         application = app.get("application", "")
@@ -275,16 +336,14 @@ def build_pdf(report: ResearchReport) -> str:
     story.append(PageBreak())
 
     # ── Future Outlook & References ──────────────────────────────────
-    story.append(
-        Paragraph("Future Outlook &amp; Predictions", styles["section_heading"])
-    )
+    story.append(Paragraph(get_text("sec_outlook", lang), styles["section_heading"]))
     story.append(Spacer(1, 4 * mm))
     for idx, outlook in enumerate(report.future_outlook, start=1):
         story.append(Paragraph(f"<b>{idx}.</b>  {outlook}", styles["bullet"]))
         story.append(Spacer(1, 2 * mm))
 
     story.append(PageBreak())
-    story.append(Paragraph("References &amp; Citations", styles["section_heading"]))
+    story.append(Paragraph(get_text("sec_references", lang), styles["section_heading"]))
     story.append(Spacer(1, 4 * mm))
     for idx, ref in enumerate(report.references, start=1):
         title = ref.get("title", "Untitled")
@@ -311,5 +370,5 @@ def build_pdf(report: ResearchReport) -> str:
     )
     doc.build(story)
 
-    logger.info("PDF generated: %s", filepath)
+    logger.info("PDF generated in language '%s': %s", lang, filepath)
     return str(filepath)

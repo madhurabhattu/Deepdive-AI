@@ -17,6 +17,7 @@ from pptx.enum.shapes import MSO_SHAPE
 from pptx.enum.text import PP_ALIGN
 from pptx.util import Inches, Pt
 
+from utils.localization import get_text
 from utils.report_schema import ResearchReport
 
 logger = logging.getLogger(__name__)
@@ -47,6 +48,13 @@ def _set_slide_bg(slide, color: RGBColor) -> None:
     fill = bg.fill
     fill.solid()
     fill.fore_color.rgb = color
+
+
+def _get_font_name(lang: str = "en") -> str:
+    """Return appropriate font name based on language selection."""
+    if lang in ["hi", "mr", "te"]:
+        return "Nirmala UI"
+    return "Outfit"
 
 
 def _add_card(
@@ -84,8 +92,9 @@ def _add_textbox(
     color: RGBColor = TEXT_PRIMARY,
     alignment: PP_ALIGN = PP_ALIGN.LEFT,
     line_spacing: int = 0,
+    lang: str = "en",
 ) -> None:
-    """Add a simple text box to a slide with Outfit typography."""
+    """Add a simple text box to a slide with language-compatible typography."""
     tx_box = slide.shapes.add_textbox(left, top, width, height)
     tf = tx_box.text_frame
     tf.word_wrap = True
@@ -95,7 +104,7 @@ def _add_textbox(
     tf.margin_bottom = Inches(0.05)
     p = tf.paragraphs[0]
     p.text = text
-    p.font.name = "Outfit"
+    p.font.name = _get_font_name(lang)
     p.font.size = Pt(font_size)
     p.font.bold = bold
     p.font.color.rgb = color
@@ -105,7 +114,7 @@ def _add_textbox(
     return tx_box
 
 
-def _create_slide_with_header(prs, number_str: str, title: str):
+def _create_slide_with_header(prs, number_str: str, title: str, lang: str = "en"):
     """Create a new slide with dark background and standard header layout."""
     slide = prs.slides.add_slide(prs.slide_layouts[6])  # blank layout
     _set_slide_bg(slide, BG_COLOR)
@@ -121,6 +130,7 @@ def _create_slide_with_header(prs, number_str: str, title: str):
         font_size=11,
         bold=True,
         color=ACCENT_PINK,
+        lang=lang,
     )
     # Slide Title
     _add_textbox(
@@ -133,6 +143,7 @@ def _create_slide_with_header(prs, number_str: str, title: str):
         font_size=24,
         bold=True,
         color=TEXT_PRIMARY,
+        lang=lang,
     )
 
     # Thin divider line below title
@@ -146,8 +157,8 @@ def _create_slide_with_header(prs, number_str: str, title: str):
     return slide
 
 
-def build_ppt(report: ResearchReport) -> str:
-    """Generate a premium dark-themed 7-slide presentation (excluding Cover Slide)."""
+def build_ppt(report: ResearchReport, lang: str = "en") -> str:
+    """Generate a premium dark-themed 7-slide presentation in target language."""
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
     filename = f"{sanitise_filename(report.topic)}_presentation.pptx"
@@ -177,10 +188,11 @@ def build_ppt(report: ResearchReport) -> str:
         Inches(1.8),
         Inches(11),
         Inches(0.5),
-        "🔬 DEEPDIVE AI RESEARCH",
+        get_text("app_title", lang).upper(),
         font_size=16,
         bold=True,
         color=ACCENT_PINK,
+        lang=lang,
     )
     _add_textbox(
         slide,
@@ -192,6 +204,7 @@ def build_ppt(report: ResearchReport) -> str:
         font_size=38,
         bold=True,
         color=TEXT_PRIMARY,
+        lang=lang,
     )
     _add_textbox(
         slide,
@@ -199,9 +212,10 @@ def build_ppt(report: ResearchReport) -> str:
         Inches(4.7),
         Inches(11),
         Inches(0.4),
-        "Strategic Analysis & Advisory Briefing",
+        get_text("app_tagline", lang),
         font_size=16,
         color=TEXT_SECONDARY,
+        lang=lang,
     )
     _add_textbox(
         slide,
@@ -209,14 +223,18 @@ def build_ppt(report: ResearchReport) -> str:
         Inches(5.2),
         Inches(11),
         Inches(0.4),
-        f"Generated on {date_str}",
+        f"{get_text('built_with', lang)} DeepDive AI — {date_str}",
         font_size=12,
         color=TEXT_SECONDARY,
+        lang=lang,
     )
 
     # ── Slide 1: Executive Summary ───────────────────────────────────
     slide = _create_slide_with_header(
-        prs, "01 / Executive Summary", "Strategic Overview & High-Level Insights"
+        prs,
+        get_text("sec_summary", lang),
+        get_text("strategic_overview_heading", lang),
+        lang=lang,
     )
 
     # Left Card: Summary Text
@@ -231,6 +249,7 @@ def build_ppt(report: ResearchReport) -> str:
         font_size=15,
         color=TEXT_PRIMARY,
         line_spacing=22,
+        lang=lang,
     )
 
     # Right Card: Key Metrics Highlight
@@ -241,10 +260,11 @@ def build_ppt(report: ResearchReport) -> str:
         Inches(2.1),
         Inches(3.3),
         Inches(0.4),
-        "PRIMARY METRICS",
+        get_text("primary_metrics_label", lang),
         font_size=12,
         bold=True,
         color=ACCENT_PINK,
+        lang=lang,
     )
 
     # Place up to 3 metrics in the right column
@@ -261,6 +281,7 @@ def build_ppt(report: ResearchReport) -> str:
             font_size=28,
             bold=True,
             color=ACCENT_VIOLET,
+            lang=lang,
         )
         _add_textbox(
             slide,
@@ -272,11 +293,15 @@ def build_ppt(report: ResearchReport) -> str:
             font_size=10,
             bold=True,
             color=TEXT_SECONDARY,
+            lang=lang,
         )
 
     # ── Slide 2: Background & Context ───────────────────────────────
     slide = _create_slide_with_header(
-        prs, "02 / Background & Context", "Why This Matters & Industry Relevance"
+        prs,
+        get_text("sec_background", lang),
+        get_text("why_this_matters_heading", lang),
+        lang=lang,
     )
 
     # Left Card: Context Text
@@ -291,6 +316,7 @@ def build_ppt(report: ResearchReport) -> str:
         font_size=15,
         color=TEXT_PRIMARY,
         line_spacing=22,
+        lang=lang,
     )
 
     # Right Card: Relevance Highlight
@@ -301,10 +327,11 @@ def build_ppt(report: ResearchReport) -> str:
         Inches(2.1),
         Inches(3.3),
         Inches(0.4),
-        "LANDSCAPE IMPORTANCE",
+        get_text("landscape_importance_label", lang),
         font_size=12,
         bold=True,
         color=ACCENT_PINK,
+        lang=lang,
     )
 
     # Context checklist or narrative summary
@@ -314,19 +341,19 @@ def build_ppt(report: ResearchReport) -> str:
         Inches(2.7),
         Inches(3.3),
         Inches(3.5),
-        (
-            "Understanding this landscape enables leaders to identify key "
-            "trends, address operational limits, and deploy strategic "
-            "frameworks to gain early market advantage."
-        ),
+        get_text("why_it_matters_text", lang),
         font_size=15,
         color=TEXT_PRIMARY,
         line_spacing=22,
+        lang=lang,
     )
 
     # ── Slide 3: Core Concepts ───────────────────────────────────────
     slide = _create_slide_with_header(
-        prs, "03 / Core Concepts", "Foundational Principles & Key Terminology"
+        prs,
+        get_text("sec_concepts", lang),
+        get_text("foundational_principles_heading", lang),
+        lang=lang,
     )
 
     # 3-Column Concept Cards
@@ -342,10 +369,11 @@ def build_ppt(report: ResearchReport) -> str:
             Inches(2.1),
             col_width - Inches(0.6),
             Inches(0.3),
-            f"CONCEPT 0{idx + 1}",
+            f"{get_text('concept_label', lang)} 0{idx + 1}",
             font_size=11,
             bold=True,
             color=ACCENT_PINK,
+            lang=lang,
         )
         # Term
         _add_textbox(
@@ -358,6 +386,7 @@ def build_ppt(report: ResearchReport) -> str:
             font_size=18,
             bold=True,
             color=TEXT_PRIMARY,
+            lang=lang,
         )
         # Definition
         _add_textbox(
@@ -366,17 +395,19 @@ def build_ppt(report: ResearchReport) -> str:
             Inches(3.5),
             col_width - Inches(0.6),
             Inches(2.8),
-            concept.get("definition", "Definition description goes here."),
+            concept.get("definition", ""),
             font_size=13,
             color=TEXT_SECONDARY,
             line_spacing=18,
+            lang=lang,
         )
 
     # ── Slide 4: Research Findings & Analysis ─────────────────────────
     slide = _create_slide_with_header(
         prs,
-        "04 / Research Findings & Analysis",
-        "Major Discoveries & Supporting Evidence",
+        get_text("sec_insights", lang),
+        get_text("findings_analysis_heading", lang),
+        lang=lang,
     )
 
     # Left Card: Vertical stack of Key Insights
@@ -387,10 +418,11 @@ def build_ppt(report: ResearchReport) -> str:
         Inches(2.1),
         Inches(6.9),
         Inches(0.4),
-        "KEY ANALYSIS INSIGHTS",
+        get_text("key_analysis_insights", lang),
         font_size=12,
         bold=True,
         color=ACCENT_PINK,
+        lang=lang,
     )
 
     tx_box = slide.shapes.add_textbox(
@@ -401,7 +433,7 @@ def build_ppt(report: ResearchReport) -> str:
     for idx, insight in enumerate(report.key_insights[:4]):
         p = tf.paragraphs[0] if idx == 0 else tf.add_paragraph()
         p.text = f"▸  {insight}"
-        p.font.name = "Outfit"
+        p.font.name = _get_font_name(lang)
         p.font.size = Pt(13)
         p.font.color.rgb = TEXT_PRIMARY
         p.space_after = Pt(12)
@@ -415,10 +447,11 @@ def build_ppt(report: ResearchReport) -> str:
         Inches(2.1),
         Inches(3.3),
         Inches(0.4),
-        "SUPPORTING DATA",
+        get_text("supporting_data", lang),
         font_size=12,
         bold=True,
         color=ACCENT_PINK,
+        lang=lang,
     )
 
     stats_list = (
@@ -436,6 +469,7 @@ def build_ppt(report: ResearchReport) -> str:
             font_size=26,
             bold=True,
             color=ACCENT_PURPLE,
+            lang=lang,
         )
         _add_textbox(
             slide,
@@ -447,13 +481,15 @@ def build_ppt(report: ResearchReport) -> str:
             font_size=10,
             bold=True,
             color=TEXT_SECONDARY,
+            lang=lang,
         )
 
     # ── Slide 5: Benefits, Challenges & Risks ─────────────────────────
     slide = _create_slide_with_header(
         prs,
-        "05 / Benefits, Challenges & Risks",
-        "Advantages, Constraints & Risks Analysis",
+        get_text("sec_benefits", lang),
+        get_text("advantages_constraints_heading", lang),
+        lang=lang,
     )
 
     # 3 columns mapping Benefits, Challenges, Risks
@@ -466,19 +502,19 @@ def build_ppt(report: ResearchReport) -> str:
 
     columns_data = [
         {
-            "title": "BENEFITS & ADVANTAGES",
+            "title": get_text("benefit_col_title", lang),
             "type": "benefit",
             "color": green_accent,
             "left": Inches(0.8),
         },
         {
-            "title": "CHALLENGES & LIMITS",
+            "title": get_text("challenge_col_title", lang),
             "type": "challenge",
             "color": orange_accent,
             "left": Inches(4.84),
         },
         {
-            "title": "RISKS & THREATS",
+            "title": get_text("risk_col_title", lang),
             "type": "risk",
             "color": rose_accent,
             "left": Inches(8.88),
@@ -497,6 +533,7 @@ def build_ppt(report: ResearchReport) -> str:
             font_size=11,
             bold=True,
             color=col["color"],
+            lang=lang,
         )
 
         # Populate matching items
@@ -506,7 +543,6 @@ def build_ppt(report: ResearchReport) -> str:
             if i.get("type", "").lower() == col["type"]
         ]
         if not items:
-            # Fallback in case type match is missing
             items = [
                 i
                 for i in report.benefits_challenges_risks
@@ -514,7 +550,10 @@ def build_ppt(report: ResearchReport) -> str:
             ]
 
         tx_box = slide.shapes.add_textbox(
-            col["left"] + Inches(0.3), Inches(2.6), col_width - Inches(0.6), Inches(3.8)
+            col["left"] + Inches(0.3),
+            Inches(2.6),
+            col_width - Inches(0.6),
+            Inches(3.8),
         )
         tf = tx_box.text_frame
         tf.word_wrap = True
@@ -522,7 +561,7 @@ def build_ppt(report: ResearchReport) -> str:
         for idx, it in enumerate(items[:3]):
             p = tf.paragraphs[0] if idx == 0 else tf.add_paragraph()
             p.text = f"▸ {it.get('item', 'Item')}\n  {it.get('description', '')}"
-            p.font.name = "Outfit"
+            p.font.name = _get_font_name(lang)
             p.font.size = Pt(12)
             p.font.color.rgb = TEXT_PRIMARY
             p.space_after = Pt(10)
@@ -530,7 +569,10 @@ def build_ppt(report: ResearchReport) -> str:
 
     # ── Slide 6: Real-World Applications ─────────────────────────────
     slide = _create_slide_with_header(
-        prs, "06 / Real-World Applications", "Practical Adoption & Case Studies"
+        prs,
+        get_text("sec_apps", lang),
+        get_text("practical_adoption_heading", lang),
+        lang=lang,
     )
 
     col_width = Inches(3.64)
@@ -545,10 +587,11 @@ def build_ppt(report: ResearchReport) -> str:
             Inches(2.1),
             col_width - Inches(0.6),
             Inches(0.3),
-            f"USE CASE 0{idx + 1}",
+            f"{get_text('usecase_label', lang)} 0{idx + 1}",
             font_size=11,
             bold=True,
             color=ACCENT_PINK,
+            lang=lang,
         )
         # Application Name
         _add_textbox(
@@ -561,6 +604,7 @@ def build_ppt(report: ResearchReport) -> str:
             font_size=18,
             bold=True,
             color=TEXT_PRIMARY,
+            lang=lang,
         )
         # Description
         _add_textbox(
@@ -573,13 +617,15 @@ def build_ppt(report: ResearchReport) -> str:
             font_size=13,
             color=TEXT_SECONDARY,
             line_spacing=18,
+            lang=lang,
         )
 
     # ── Slide 7: Future Outlook & Recommendations ────────────────────
     slide = _create_slide_with_header(
         prs,
-        "07 / Future Outlook & Recommendations",
-        "Strategic Predictions & Citations",
+        get_text("sec_outlook", lang),
+        get_text("strategic_predictions_heading", lang),
+        lang=lang,
     )
 
     # Left Card: Future Outlook / Predictions
@@ -590,10 +636,11 @@ def build_ppt(report: ResearchReport) -> str:
         Inches(2.1),
         Inches(6.9),
         Inches(0.4),
-        "FUTURE STRATEGIC ROADMAP",
+        get_text("sec_future_roadmap", lang),
         font_size=12,
         bold=True,
         color=ACCENT_PINK,
+        lang=lang,
     )
 
     tx_box = slide.shapes.add_textbox(
@@ -604,7 +651,7 @@ def build_ppt(report: ResearchReport) -> str:
     for idx, outlook in enumerate(report.future_outlook[:4]):
         p = tf.paragraphs[0] if idx == 0 else tf.add_paragraph()
         p.text = f"▸  {outlook}"
-        p.font.name = "Outfit"
+        p.font.name = _get_font_name(lang)
         p.font.size = Pt(13)
         p.font.color.rgb = TEXT_PRIMARY
         p.space_after = Pt(12)
@@ -618,10 +665,11 @@ def build_ppt(report: ResearchReport) -> str:
         Inches(2.1),
         Inches(3.3),
         Inches(0.4),
-        "SOURCES & REFERENCES",
+        get_text("sources_references", lang),
         font_size=12,
         bold=True,
         color=ACCENT_PINK,
+        lang=lang,
     )
 
     ref_tx_box = slide.shapes.add_textbox(
@@ -632,23 +680,22 @@ def build_ppt(report: ResearchReport) -> str:
     for idx, ref in enumerate(report.references[:4]):
         p_title = ref_tf.paragraphs[0] if idx == 0 else ref_tf.add_paragraph()
         p_title.text = f"{idx + 1}. {ref.get('title', 'Source')}"
-        p_title.font.name = "Outfit"
+        p_title.font.name = _get_font_name(lang)
         p_title.font.size = Pt(11)
         p_title.font.bold = True
         p_title.font.color.rgb = ACCENT_VIOLET
         p_title.space_after = Pt(1)
 
         p_url = ref_tf.add_paragraph()
-        # Clean URL/Domain for display
         url_str = ref.get("url", "")
         domain = re.sub(r"https?://(www\.)?", "", url_str).split("/")[0]
         p_url.text = f"   Source: {domain}"
-        p_url.font.name = "Outfit"
+        p_url.font.name = _get_font_name(lang)
         p_url.font.size = Pt(9)
         p_url.font.color.rgb = TEXT_SECONDARY
         p_url.space_after = Pt(8)
 
     # ── Save Presentation ────────────────────────────────────────────
     prs.save(str(filepath))
-    logger.info("Premium PPTX generated: %s", filepath)
+    logger.info("Premium PPTX generated in language '%s': %s", lang, filepath)
     return str(filepath)

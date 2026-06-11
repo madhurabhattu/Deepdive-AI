@@ -137,3 +137,9 @@ class TestBuildPdf:
     def test_filename_contains_sanitised_topic(self, mock_report: ResearchReport):
         filepath = build_pdf(mock_report)
         assert "quantum_computing" in os.path.basename(filepath)
+
+    def test_build_pdf_multilingual(self, mock_report: ResearchReport):
+        for lang in ["hi", "mr", "te"]:
+            filepath = build_pdf(mock_report, lang=lang)
+            assert os.path.exists(filepath)
+            assert os.path.getsize(filepath) > 0

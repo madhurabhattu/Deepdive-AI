@@ -45,5 +45,5 @@ build:
     - echo "Validating Python syntax..."
     - python -m compileall .
     - echo "Verifying project module imports..."
-    - python -c "import app; import utils.ai_client; import utils.pdf_generator; import utils.ppt_generator; import utils.report_schema"
+    - python -c "import app; import utils.ai_client; import utils.pdf_generator; import utils.ppt_generator; import utils.report_schema; import utils.font_manager; import utils.localization"
     - python -c "import importlib; importlib.import_module('pages.1_🔬_Research')"

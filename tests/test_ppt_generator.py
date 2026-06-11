@@ -146,3 +146,10 @@ class TestBuildPpt:
         for slide in prs.slides:
             # Each slide should have at least one shape
             assert len(slide.shapes) > 0
+
+    def test_build_ppt_multilingual(self, mock_report: ResearchReport):
+        for lang in ["hi", "mr", "te"]:
+            filepath = build_ppt(mock_report, lang=lang)
+            assert os.path.exists(filepath)
+            prs = PptxPresentation(filepath)
+            assert len(prs.slides) == 8

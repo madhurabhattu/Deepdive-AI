@@ -176,13 +176,15 @@ RULES:
 """
 
 
-def generate_research_report(topic: str) -> str:
+def generate_research_report(topic: str, report_lang: str = "en") -> str:
     """Send a research prompt to Gemini and return the raw JSON response.
 
     Parameters
     ----------
     topic : str
         The user-provided research topic.
+    report_lang : str
+        The language code ('en', 'hi', 'mr', 'te') for the output report.
 
     Returns
     -------
@@ -199,7 +201,28 @@ def generate_research_report(topic: str) -> str:
     api_key = _get_api_key()
     client = genai.Client(api_key=api_key)
 
+    lang_names = {
+        "en": "English",
+        "hi": "Hindi",
+        "mr": "Marathi",
+        "te": "Telugu",
+    }
+    lang_name = lang_names.get(report_lang, "English")
+
     prompt = _RESEARCH_PROMPT_TEMPLATE.format(topic=topic)
+    if report_lang != "en":
+        prompt += (
+            f"\nCRITICAL LOCALIZATION RULE:\n"
+            f"- Generate the entire research report content in the "
+            f"{lang_name} language.\n"
+            f"- Translate all strings (such as summaries, terms, definitions, "
+            f"key insights, benefits, descriptions, applications, future "
+            f"outlooks, metrics labels, reference snippets, etc.) "
+            f"fully into {lang_name}.\n"
+            f'- Keep the JSON keys exactly in English (e.g. "executive_summary", '
+            f'"term", "definition", "type", etc.) as defined in the schema '
+            f"template. Do NOT translate the JSON keys."
+        )
 
     try:
         response = client.models.generate_content(
@@ -213,9 +236,10 @@ def generate_research_report(topic: str) -> str:
 
         raw_text = response.text.strip()
         logger.info(
-            "Gemini returned %d characters for topic '%s'",
+            "Gemini returned %d characters for topic '%s' in language '%s'",
             len(raw_text),
             topic,
+            report_lang,
         )
 
         # Quick sanity check: is this parseable JSON?

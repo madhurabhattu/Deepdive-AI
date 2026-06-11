@@ -12,6 +12,8 @@ from pathlib import Path
 
 import streamlit as st
 
+from utils.localization import LANGUAGES, detect_browser_language, get_text
+
 # ── Logging Configuration ───────────────────────────────────────────
 logging.basicConfig(
     level=logging.INFO,
@@ -30,6 +32,9 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+# ── Session State Defaults ──────────────────────────────────────────
+if "ui_lang" not in st.session_state:
+    st.session_state["ui_lang"] = detect_browser_language()
 
 # ── Global Custom CSS (T021) ────────────────────────────────────────
 st.markdown(
@@ -299,37 +304,48 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
+lang = st.session_state["ui_lang"]
 
 # ── Sidebar ─────────────────────────────────────────────────────────
 with st.sidebar:
-    st.markdown("### 🔬 DeepDive AI")
-    st.caption("AI-Powered Research Report Generator")
+    st.markdown(f"### {get_text('app_title', lang)}")
+    st.caption(get_text("app_tagline", lang))
     st.divider()
     st.markdown(
-        """
-        **How to use:**
-        1. Go to **🔬 Research** page
-        2. Enter any research topic
-        3. Click **Generate Report**
-        4. Download **PDF** or **PPT**
-        """
+        f"**{get_text('how_to_use', lang)}**\n\n"
+        f"{get_text('step_1', lang)}\n\n"
+        f"{get_text('step_2', lang)}\n\n"
+        f"{get_text('step_3', lang)}\n\n"
+        f"{get_text('step_4', lang)}"
     )
     st.divider()
     st.markdown(
-        "Built with [Streamlit](https://streamlit.io) "
+        f"{get_text('built_with', lang)} [Streamlit](https://streamlit.io) "
         "& [Gemini AI](https://ai.google.dev)",
     )
 
+# ── Top Navigation / Language Switcher Row ──────────────────────────
+col_empty, col_lang_switch = st.columns([5, 1])
+with col_lang_switch:
+    ui_lang_selected = st.selectbox(
+        "🌐 Language / भाषा / भाषा / భాష",
+        options=list(LANGUAGES.keys()),
+        format_func=lambda x: f"🌐 {LANGUAGES[x]}",
+        index=list(LANGUAGES.keys()).index(st.session_state["ui_lang"]),
+        key="ui_lang_selector_app",
+        label_visibility="collapsed",
+    )
+    if ui_lang_selected != st.session_state["ui_lang"]:
+        st.session_state["ui_lang"] = ui_lang_selected
+        st.rerun()
 
 # ── Main Landing Page ──────────────────────────────────────────────
 st.markdown(
-    """
+    f"""
     <div class="hero-container">
-        <h1>🔬 DeepDive AI</h1>
+        <h1>{get_text("app_title", lang)}</h1>
         <p class="subtitle">
-            Enter any research topic and receive a comprehensive, AI-generated
-            report — complete with executive summary, key insights, statistics,
-            and downloadable exports.
+            {get_text("hero_subtitle", lang)}
         </p>
     </div>
     """,
@@ -337,54 +353,48 @@ st.markdown(
 )
 
 st.markdown(
-    """
+    f"""
     <div class="feature-grid">
         <div class="feature-card">
             <div class="feature-icon">📝</div>
-            <div class="feature-title">Executive Summary</div>
+            <div class="feature-title">{get_text("feat_summary_title", lang)}</div>
             <div class="feature-desc">
-                A concise, professional overview of your research topic
-                crafted by AI.
+                {get_text("feat_summary_desc", lang)}
             </div>
         </div>
         <div class="feature-card">
             <div class="feature-icon">💡</div>
-            <div class="feature-title">Key Insights</div>
+            <div class="feature-title">{get_text("feat_insights_title", lang)}</div>
             <div class="feature-desc">
-                The most important findings and takeaways, distilled for
-                quick understanding.
+                {get_text("feat_insights_desc", lang)}
             </div>
         </div>
         <div class="feature-card">
             <div class="feature-icon">📊</div>
-            <div class="feature-title">Statistics &amp; Data</div>
+            <div class="feature-title">{get_text("feat_stats_title", lang)}</div>
             <div class="feature-desc">
-                Relevant numbers, metrics, and data points to support
-                your research.
+                {get_text("feat_stats_desc", lang)}
             </div>
         </div>
         <div class="feature-card">
             <div class="feature-icon">📚</div>
-            <div class="feature-title">References &amp; Citations</div>
+            <div class="feature-title">{get_text("feat_ref_title", lang)}</div>
             <div class="feature-desc">
-                Credible sources for further reading, complete with
-                descriptions and URLs.
+                {get_text("feat_ref_desc", lang)}
             </div>
         </div>
         <div class="feature-card">
             <div class="feature-icon">📄</div>
-            <div class="feature-title">PDF Report</div>
+            <div class="feature-title">{get_text("feat_pdf_title", lang)}</div>
             <div class="feature-desc">
-                Download a professionally formatted PDF report ready
-                for sharing or archiving.
+                {get_text("feat_pdf_desc", lang)}
             </div>
         </div>
         <div class="feature-card">
             <div class="feature-icon">📽️</div>
-            <div class="feature-title">PowerPoint Deck</div>
+            <div class="feature-title">{get_text("feat_ppt_title", lang)}</div>
             <div class="feature-desc">
-                Get a ready-to-present slide deck — perfect for
-                meetings and classrooms.
+                {get_text("feat_ppt_desc", lang)}
             </div>
         </div>
     </div>
@@ -393,9 +403,9 @@ st.markdown(
 )
 
 st.markdown(
-    """
+    f"""
     <div class="cta-section">
-        <p>👉 Select <strong>🔬 Research</strong> from the sidebar to get started.</p>
+        <p>{get_text("cta_text", lang)}</p>
     </div>
     """,
     unsafe_allow_html=True,

@@ -8,8 +8,7 @@ Streamlit page view for the research report workflow:
 4. Report sections are rendered in the UI
 5. PDF and PPTX download buttons are provided
 
-All business logic lives in utils/; this module handles UI only
-(Constitution §IV).
+All business logic lives in utils/; this module handles UI only (Constitution §IV).
 """
 
 from __future__ import annotations
@@ -21,6 +20,7 @@ import traceback
 import streamlit as st
 
 from utils.ai_client import generate_research_report
+from utils.localization import LANGUAGES, detect_browser_language, get_text
 from utils.pdf_generator import build_pdf
 from utils.ppt_generator import build_ppt
 from utils.report_schema import ResearchReport, parse_report
@@ -33,6 +33,23 @@ st.set_page_config(
     page_icon="🔬",
     layout="wide",
 )
+
+# ── Session State Defaults ──────────────────────────────────────────
+if "ui_lang" not in st.session_state:
+    st.session_state["ui_lang"] = detect_browser_language()
+if "report_lang" not in st.session_state:
+    st.session_state["report_lang"] = "en"
+if "report" not in st.session_state:
+    st.session_state["report"] = None
+if "generating" not in st.session_state:
+    st.session_state["generating"] = False
+if "pdf_path" not in st.session_state:
+    st.session_state["pdf_path"] = None
+if "ppt_path" not in st.session_state:
+    st.session_state["ppt_path"] = None
+
+lang = st.session_state["ui_lang"]
+report_lang = st.session_state["report_lang"]
 
 # ── Custom CSS ──────────────────────────────────────────────────────
 st.markdown(
@@ -325,35 +342,82 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# ── Header ──────────────────────────────────────────────────────────
+# ── Sidebar ─────────────────────────────────────────────────────────
+with st.sidebar:
+    st.markdown(f"### {get_text('app_title', lang)}")
+    st.caption(get_text("app_tagline", lang))
+    st.divider()
+    st.markdown(
+        f"**{get_text('how_to_use', lang)}**\n\n"
+        f"{get_text('step_1', lang)}\n\n"
+        f"{get_text('step_2', lang)}\n\n"
+        f"{get_text('step_3', lang)}\n\n"
+        f"{get_text('step_4', lang)}"
+    )
+    st.divider()
+    st.markdown(
+        f"{get_text('built_with', lang)} [Streamlit](https://streamlit.io) "
+        "& [Gemini AI](https://ai.google.dev)",
+    )
+
+# ── Header & Language Switchers Row ──────────────────────────────────
+col_title, col_ui_lang, col_rep_lang = st.columns([4, 1, 1])
+with col_title:
+    st.markdown(
+        f"""
+        <div class="main-header">
+            <h1>{get_text("hero_title", lang)}</h1>
+            <p>{get_text("app_tagline", lang)}</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+with col_ui_lang:
+    ui_lang_selected = st.selectbox(
+        f"🌐 {get_text('ui_language', lang)}",
+        options=list(LANGUAGES.keys()),
+        format_func=lambda x: LANGUAGES[x],
+        index=list(LANGUAGES.keys()).index(st.session_state["ui_lang"]),
+        key="ui_lang_selector_research",
+    )
+    if ui_lang_selected != st.session_state["ui_lang"]:
+        st.session_state["ui_lang"] = ui_lang_selected
+        st.toast(get_text("welcome_back", ui_lang_selected), icon="🔬")
+        st.rerun()
+
+with col_rep_lang:
+    report_labels = {
+        "en": "English",
+        "hi": "हिन्दी (Hindi)",
+        "mr": "मराठी (Marathi)",
+        "te": "తెలుగు (Telugu)",
+    }
+    report_lang_selected = st.selectbox(
+        f"📄 {get_text('report_language', lang)}",
+        options=list(LANGUAGES.keys()),
+        format_func=lambda x: report_labels[x],
+        index=list(LANGUAGES.keys()).index(st.session_state["report_lang"]),
+        key="report_lang_selector_research",
+    )
+    if report_lang_selected != st.session_state["report_lang"]:
+        st.session_state["report_lang"] = report_lang_selected
+        st.rerun()
+
+# Welcome banner callout
+welcome_msg = get_text("welcome_back", lang)
 st.markdown(
-    """
-    <div class="main-header">
-        <h1>🔬 Research Report Generator</h1>
-        <p>Enter a topic and let AI generate a comprehensive
-        research report for you.</p>
-    </div>
-    """,
+    f"<p style='color: #A855F7; font-weight: 500;'>👋 {welcome_msg}</p>",
     unsafe_allow_html=True,
 )
-
-# ── Session State Defaults ──────────────────────────────────────────
-if "report" not in st.session_state:
-    st.session_state["report"] = None
-if "generating" not in st.session_state:
-    st.session_state["generating"] = False
-if "pdf_path" not in st.session_state:
-    st.session_state["pdf_path"] = None
-if "ppt_path" not in st.session_state:
-    st.session_state["ppt_path"] = None
 
 # ── Topic Input & Generate Button ──────────────────────────────────
 col_input, col_btn = st.columns([4, 1])
 
 with col_input:
     topic = st.text_input(
-        "Research Topic",
-        placeholder="e.g. Impact of climate change on agriculture",
+        get_text("research_topic", lang),
+        placeholder=get_text("input_placeholder", lang),
         label_visibility="collapsed",
         max_chars=500,
         key="topic_input",
@@ -361,7 +425,7 @@ with col_input:
 
 with col_btn:
     generate_clicked = st.button(
-        "🚀 Generate Report",
+        get_text("btn_generate", lang),
         use_container_width=True,
         disabled=st.session_state.get("generating", False),
         type="primary",
@@ -370,7 +434,7 @@ with col_btn:
 # ── Input Validation & Generation ──────────────────────────────────
 if generate_clicked:
     if not topic or not topic.strip():
-        st.warning("⚠️ Please enter a research topic.")
+        st.warning(get_text("warning_empty_topic", lang))
     else:
         display_topic = topic[:200] + "…" if len(topic) > 200 else topic
 
@@ -379,44 +443,38 @@ if generate_clicked:
         st.session_state["pdf_path"] = None
         st.session_state["ppt_path"] = None
 
-        spinner_msg = (
-            f"🔍 Researching **{display_topic}**… This may take up to 30 seconds."
-        )
+        spinner_msg = get_text("spinner_msg", lang).format(topic=display_topic)
         with st.spinner(spinner_msg):
             try:
-                raw_json = generate_research_report(topic.strip())
+                raw_json = generate_research_report(
+                    topic.strip(), report_lang=st.session_state["report_lang"]
+                )
                 parsed_report = parse_report(raw_json, topic=topic.strip())
                 st.session_state["report"] = parsed_report
                 st.session_state["generating"] = False
-                st.success("✅ Report generated successfully!")
+                st.success(get_text("success_msg", lang))
 
             except OSError as exc:
                 st.session_state["generating"] = False
-                st.error(
-                    "🔑 API key not configured. Please configure "
-                    "`GEMINI_API_KEY` in Streamlit Secrets, environment "
-                    "variables, or your `.env` file."
-                )
+                st.error(get_text("err_api_key", lang))
                 logger.error("Environment error: %s", exc)
                 logger.debug(traceback.format_exc())
 
             except RuntimeError as exc:
                 st.session_state["generating"] = False
-                st.error("❌ Research generation failed. Please try again.")
+                st.error(get_text("err_generation", lang))
                 logger.error("API error: %s", exc)
                 logger.debug(traceback.format_exc())
 
             except ValueError as exc:
                 st.session_state["generating"] = False
-                st.error(
-                    "⚠️ The AI returned an unexpected response format. Please try again."
-                )
+                st.error(get_text("err_schema", lang))
                 logger.error("Schema validation error: %s", exc)
                 logger.debug(traceback.format_exc())
 
             except Exception as exc:
                 st.session_state["generating"] = False
-                st.error("❌ An unexpected error occurred. Please try again.")
+                st.error(get_text("err_unexpected", lang))
                 logger.error("Unexpected error: %s", exc)
                 logger.debug(traceback.format_exc())
 
@@ -430,7 +488,7 @@ if report is not None:
     st.markdown(
         f"""
         <div class="section-card">
-            <h3>📝 Executive Summary</h3>
+            <h3>{get_text("sec_summary", lang)}</h3>
             <p style="color: #94A3B8; line-height: 1.75; font-size: 1.05rem;">
                 {report.executive_summary}
             </p>
@@ -443,7 +501,7 @@ if report is not None:
     st.markdown(
         f"""
         <div class="section-card">
-            <h3>🌍 Background &amp; Context</h3>
+            <h3>{get_text("sec_background", lang)}</h3>
             <p style="color: #94A3B8; line-height: 1.75; font-size: 1.05rem;">
                 {report.background_context}
             </p>
@@ -454,7 +512,7 @@ if report is not None:
 
     # ── Core Concepts ────────────────────────────────────────────────
     st.markdown(
-        '<div class="section-card"><h3>🔑 Core Concepts &amp; Terminology</h3>',
+        f'<div class="section-card"><h3>{get_text("sec_concepts", lang)}</h3>',
         unsafe_allow_html=True,
     )
     for concept in report.core_concepts:
@@ -479,15 +537,14 @@ if report is not None:
 
     # ── Key Insights ─────────────────────────────────────────────────
     if len(report.key_insights) < 3:
+        warn_msg = get_text("limited_data_warn", lang)
         st.markdown(
-            '<div class="limited-data-banner">'
-            "⚠️ Limited data available for this topic."
-            "</div>",
+            f'<div class="limited-data-banner">{warn_msg}</div>',
             unsafe_allow_html=True,
         )
 
     st.markdown(
-        '<div class="section-card"><h3>💡 Key Insights</h3>',
+        f'<div class="section-card"><h3>{get_text("sec_insights", lang)}</h3>',
         unsafe_allow_html=True,
     )
     for insight in report.key_insights:
@@ -499,15 +556,14 @@ if report is not None:
 
     # ── Statistics ───────────────────────────────────────────────────
     st.markdown(
-        '<div class="section-card"><h3>📊 Statistics &amp; Data</h3></div>',
+        f'<div class="section-card"><h3>{get_text("sec_stats", lang)}</h3></div>',
         unsafe_allow_html=True,
     )
 
     if len(report.statistics) < 3:
+        stats_warn = get_text("limited_stats_warn", lang)
         st.markdown(
-            '<div class="limited-data-banner">'
-            "⚠️ Limited statistical data available for this topic."
-            "</div>",
+            f'<div class="limited-data-banner">{stats_warn}</div>',
             unsafe_allow_html=True,
         )
 
@@ -530,15 +586,15 @@ if report is not None:
 
     # ── Benefits, Challenges & Risks ─────────────────────────────────
     st.markdown(
-        '<div class="section-card"><h3>⚖️ Benefits, Challenges &amp; Risks</h3>',
+        f'<div class="section-card"><h3>{get_text("sec_benefits", lang)}</h3>',
         unsafe_allow_html=True,
     )
     col_b, col_c, col_r = st.columns(3)
 
     with col_b:
         b_header = (
-            "<h4 style='color: #4ADE80 !important; "
-            "font-size: 1.1rem; margin-bottom: 0.75rem;'>🟢 Benefits</h4>"
+            f"<h4 style='color: #4ADE80 !important; font-size: 1.1rem; "
+            f"margin-bottom: 0.75rem;'>{get_text('benefit_label', lang)}</h4>"
         )
         st.markdown(b_header, unsafe_allow_html=True)
         benefits = [
@@ -571,8 +627,8 @@ if report is not None:
 
     with col_c:
         c_header = (
-            "<h4 style='color: #FBBF24 !important; "
-            "font-size: 1.1rem; margin-bottom: 0.75rem;'>🟡 Challenges</h4>"
+            f"<h4 style='color: #FBBF24 !important; font-size: 1.1rem; "
+            f"margin-bottom: 0.75rem;'>{get_text('challenge_label', lang)}</h4>"
         )
         st.markdown(c_header, unsafe_allow_html=True)
         challenges = [
@@ -605,8 +661,8 @@ if report is not None:
 
     with col_r:
         r_header = (
-            "<h4 style='color: #F87171 !important; "
-            "font-size: 1.1rem; margin-bottom: 0.75rem;'>🔴 Risks &amp; Trade-offs</h4>"
+            f"<h4 style='color: #F87171 !important; font-size: 1.1rem; "
+            f"margin-bottom: 0.75rem;'>{get_text('risk_label', lang)}</h4>"
         )
         st.markdown(r_header, unsafe_allow_html=True)
         risks = [
@@ -640,7 +696,7 @@ if report is not None:
 
     # ── Real-World Applications ──────────────────────────────────────
     st.markdown(
-        '<div class="section-card"><h3>🚀 Real-World Applications</h3>',
+        f'<div class="section-card"><h3>{get_text("sec_apps", lang)}</h3>',
         unsafe_allow_html=True,
     )
     for app in report.real_world_applications:
@@ -665,7 +721,7 @@ if report is not None:
 
     # ── Future Outlook ───────────────────────────────────────────────
     st.markdown(
-        '<div class="section-card"><h3>🔮 Future Outlook &amp; Recommendations</h3>',
+        f'<div class="section-card"><h3>{get_text("sec_outlook", lang)}</h3>',
         unsafe_allow_html=True,
     )
     for outlook in report.future_outlook:
@@ -678,7 +734,7 @@ if report is not None:
 
     # ── References ───────────────────────────────────────────────────
     st.markdown(
-        '<div class="section-card"><h3>📚 References &amp; Citations</h3></div>',
+        f'<div class="section-card"><h3>{get_text("sec_references", lang)}</h3></div>',
         unsafe_allow_html=True,
     )
 
@@ -700,7 +756,9 @@ if report is not None:
     # ── Download Buttons ─────────────────────────────────────────────
     st.markdown("---")
     st.markdown(
-        '<div class="download-section"><h3>⬇_ Download Your Report</h3></div>',
+        f'<div class="download-section">'
+        f"<h3>{get_text('download_section_title', lang)}</h3>"
+        f"</div>",
         unsafe_allow_html=True,
     )
 
@@ -709,14 +767,14 @@ if report is not None:
     with col_pdf:
         try:
             if st.session_state.get("pdf_path") is None:
-                pdf_path = build_pdf(report)
+                pdf_path = build_pdf(report, lang=st.session_state["report_lang"])
                 st.session_state["pdf_path"] = pdf_path
             else:
                 pdf_path = st.session_state["pdf_path"]
 
             with open(pdf_path, "rb") as f:
                 st.download_button(
-                    label="⬇️ Download PDF",
+                    label=get_text("btn_download_pdf", lang),
                     data=f.read(),
                     file_name=os.path.basename(pdf_path),
                     mime="application/pdf",
@@ -724,20 +782,20 @@ if report is not None:
                     type="primary",
                 )
         except Exception as exc:
-            st.error("Failed to generate PDF. Please try again.")
+            st.error(get_text("pdf_err", lang))
             logger.error("PDF generation error: %s", exc)
 
     with col_ppt:
         try:
             if st.session_state.get("ppt_path") is None:
-                ppt_path = build_ppt(report)
+                ppt_path = build_ppt(report, lang=st.session_state["report_lang"])
                 st.session_state["ppt_path"] = ppt_path
             else:
                 ppt_path = st.session_state["ppt_path"]
 
             with open(ppt_path, "rb") as f:
                 st.download_button(
-                    label="⬇️ Download PPT",
+                    label=get_text("btn_download_ppt", lang),
                     data=f.read(),
                     file_name=os.path.basename(ppt_path),
                     mime="application/vnd.openxmlformats-officedocument.presentationml.presentation",
@@ -745,11 +803,26 @@ if report is not None:
                     type="primary",
                 )
         except Exception as exc:
-            st.error("Failed to generate PowerPoint. Please try again.")
+            st.error(get_text("ppt_err", lang))
             logger.error("PPTX generation error: %s", exc)
 
 else:
     st.markdown("---")
-    st.info(
+    # Native suggestion hint
+    hint_text = (
         "👆 Enter a research topic above and click **Generate Report** to get started."
     )
+    if lang == "hi":
+        hint_text = (
+            "👆 ऊपर एक शोध विषय दर्ज करें और आरंभ करने के लिए **रिपोर्ट उत्पन्न करें** पर क्लिक करें।"
+        )
+    elif lang == "mr":
+        hint_text = (
+            "👆 वर एक संशोधन विषय प्रविष्ट करा आणि "
+            "सुरू करण्यासाठी **अहवाल तयार करा** वर क्लिक करा।"
+        )
+    elif lang == "te":
+        hint_text = (
+            "👆 పైన ఒక పరిశోధనా అంశాన్ని నమోదు చేసి, ప్రారంభించడానికి **నివేదికను సృష్టించండి** క్లిక్ చేయండి."
+        )
+    st.info(hint_text)
