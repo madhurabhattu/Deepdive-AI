@@ -1,0 +1,49 @@
+stages:
+  - lint
+  - test
+  - build
+
+cache:
+  key: "$CI_COMMIT_REF_SLUG"
+  paths:
+    - .pip-cache/
+
+lint:
+  stage: lint
+  image: python:3.11-slim
+  before_script:
+    - pip install --cache-dir .pip-cache ruff
+  script:
+    - |
+      if [ -f pyproject.toml ] && grep -q "tool.ruff" pyproject.toml; then
+        echo "Running Ruff check..."
+        ruff check .
+      else
+        echo "Ruff not configured in pyproject.toml. Skipping."
+      fi
+
+test:
+  stage: test
+  image: python:3.11-slim
+  before_script:
+    - pip install --cache-dir .pip-cache -r requirements.txt
+  script:
+    - |
+      if [ -d tests ]; then
+        echo "Running pytest..."
+        pytest tests/ -v --tb=short
+      else
+        echo "No tests folder found. Skipping."
+      fi
+
+build:
+  stage: build
+  image: python:3.11-slim
+  before_script:
+    - pip install --cache-dir .pip-cache -r requirements.txt
+  script:
+    - echo "Validating Python syntax..."
+    - python -m compileall .
+    - echo "Verifying project module imports..."
+    - python -c "import app; import utils.ai_client; import utils.pdf_generator; import utils.ppt_generator; import utils.report_schema"
+    - python -c "import importlib; importlib.import_module('pages.1_🔬_Research')"
