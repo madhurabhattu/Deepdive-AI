@@ -17,12 +17,15 @@ import os
 from pathlib import Path
 from typing import Any
 
-from dotenv import load_dotenv
-
 logger = logging.getLogger(__name__)
 
-# Load .env from project root (development only)
-load_dotenv(Path(__file__).resolve().parent.parent / ".env")
+# Load .env for local development — gracefully skip if python-dotenv is absent
+try:
+    from dotenv import load_dotenv
+
+    load_dotenv(Path(__file__).resolve().parent.parent / ".env")
+except ImportError:
+    logger.debug("python-dotenv not installed; skipping .env load.")
 
 # ── Prompt template (shared across backends) ────────────────────────────────
 
@@ -136,8 +139,14 @@ RULES:
 
 # ── Ollama supported models ──────────────────────────────────────────────────
 
-OLLAMA_MODELS = ["llama3", "mistral", "gemma", "qwen"]
-OLLAMA_BASE_URL = "http://localhost:11434"
+OLLAMA_MODELS: list[str] = ["llama3", "mistral", "gemma", "qwen"]
+OLLAMA_BASE_URL: str = "http://localhost:11434"
+
+__all__ = [
+    "OLLAMA_BASE_URL",
+    "OLLAMA_MODELS",
+    "generate_research_report",
+]
 
 # ── Gemini backend ───────────────────────────────────────────────────────────
 
