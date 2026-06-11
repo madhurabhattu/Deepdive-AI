@@ -40,9 +40,9 @@ logger = logging.getLogger(__name__)
 OUTPUT_DIR = Path(__file__).resolve().parent.parent / "output"
 
 # Brand colours
-_PRIMARY = colors.HexColor("#1a237e")     # Deep indigo
-_ACCENT = colors.HexColor("#0d47a1")      # Dark blue
-_LIGHT_BG = colors.HexColor("#e8eaf6")    # Lavender
+_PRIMARY = colors.HexColor("#1a237e")  # Deep indigo
+_ACCENT = colors.HexColor("#0d47a1")  # Dark blue
+_LIGHT_BG = colors.HexColor("#e8eaf6")  # Lavender
 _TEXT_DARK = colors.HexColor("#212121")
 _TEXT_GRAY = colors.HexColor("#616161")
 _WHITE = colors.white
@@ -159,31 +159,42 @@ def build_pdf(report: ResearchReport) -> str:
     story.append(Spacer(1, 0.3 * inch))
     story.append(Paragraph(report.topic, styles["cover_title"]))
     story.append(Spacer(1, 0.3 * inch))
-    story.append(
-        Paragraph("AI-Generated Research Report", styles["cover_subtitle"])
-    )
+    story.append(Paragraph("AI-Generated Research Report", styles["cover_subtitle"]))
     story.append(Paragraph(f"Generated on {date_str}", styles["cover_date"]))
     story.append(PageBreak())
 
-    # ── Executive Summary ────────────────────────────────────────────
+    # ── Executive Summary & Background Context ───────────────────────
     story.append(Paragraph("Executive Summary", styles["section_heading"]))
     story.append(Spacer(1, 4 * mm))
     story.append(Paragraph(report.executive_summary, styles["body"]))
+    story.append(Spacer(1, 6 * mm))
+
+    story.append(Paragraph("Background &amp; Context", styles["section_heading"]))
+    story.append(Spacer(1, 4 * mm))
+    story.append(Paragraph(report.background_context, styles["body"]))
+    story.append(PageBreak())
+
+    # ── Core Concepts ────────────────────────────────────────────────
+    story.append(
+        Paragraph("Core Concepts &amp; Terminology", styles["section_heading"])
+    )
+    story.append(Spacer(1, 4 * mm))
+    for concept in report.core_concepts:
+        term = concept.get("term", "")
+        definition = concept.get("definition", "")
+        story.append(Paragraph(f"<b>•  {term}</b>: {definition}", styles["bullet"]))
+        story.append(Spacer(1, 2 * mm))
     story.append(PageBreak())
 
     # ── Key Insights ─────────────────────────────────────────────────
     story.append(Paragraph("Key Insights", styles["section_heading"]))
     story.append(Spacer(1, 4 * mm))
     for idx, insight in enumerate(report.key_insights, start=1):
-        story.append(
-            Paragraph(f"<b>{idx}.</b>  {insight}", styles["bullet"])
-        )
+        story.append(Paragraph(f"<b>{idx}.</b>  {insight}", styles["bullet"]))
     story.append(PageBreak())
 
     # ── Statistics ───────────────────────────────────────────────────
-    story.append(
-        Paragraph("Statistics &amp; Data", styles["section_heading"])
-    )
+    story.append(Paragraph("Statistics &amp; Data", styles["section_heading"]))
     story.append(Spacer(1, 4 * mm))
 
     table_data = [["Metric", "Value"]]
@@ -214,10 +225,66 @@ def build_pdf(report: ResearchReport) -> str:
     story.append(table)
     story.append(PageBreak())
 
-    # ── References ───────────────────────────────────────────────────
+    # ── Benefits, Challenges & Risks ─────────────────────────────────
     story.append(
-        Paragraph("References &amp; Citations", styles["section_heading"])
+        Paragraph(
+            "Benefits, Challenges &amp; Risks Analysis", styles["section_heading"]
+        )
     )
+    story.append(Spacer(1, 4 * mm))
+    for it in report.benefits_challenges_risks:
+        item_name = it.get("item", "")
+        item_type = it.get("type", "").upper()
+        description = it.get("description", "")
+
+        color_hex = "#1b237e"
+        if item_type == "BENEFIT":
+            color_hex = "#2e7d32"
+        elif item_type == "CHALLENGE":
+            color_hex = "#f57c00"
+        elif item_type == "RISK":
+            color_hex = "#c62828"
+
+        p_text = (
+            f'<b><font color="{color_hex}">[{item_type}]</font> '
+            f"{item_name}</b>: {description}"
+        )
+        story.append(
+            Paragraph(
+                p_text,
+                styles["bullet"],
+            )
+        )
+        story.append(Spacer(1, 2 * mm))
+    story.append(PageBreak())
+
+    # ── Real-World Applications ──────────────────────────────────────
+    story.append(
+        Paragraph(
+            "Real-World Applications &amp; Case Studies", styles["section_heading"]
+        )
+    )
+    story.append(Spacer(1, 4 * mm))
+    for app in report.real_world_applications:
+        application = app.get("application", "")
+        description = app.get("description", "")
+        story.append(
+            Paragraph(f"<b>•  {application}</b>: {description}", styles["bullet"])
+        )
+        story.append(Spacer(1, 2 * mm))
+    story.append(PageBreak())
+
+    # ── Future Outlook & References ──────────────────────────────────
+    story.append(
+        Paragraph("Future Outlook &amp; Predictions", styles["section_heading"])
+    )
+    story.append(Spacer(1, 4 * mm))
+    for idx, outlook in enumerate(report.future_outlook, start=1):
+        story.append(Paragraph(f"<b>{idx}.</b>  {outlook}", styles["bullet"]))
+        story.append(Spacer(1, 2 * mm))
+
+    story.append(PageBreak())
+    story.append(Paragraph("References &amp; Citations", styles["section_heading"]))
     story.append(Spacer(1, 4 * mm))
     for idx, ref in enumerate(report.references, start=1):
         title = ref.get("title", "Untitled")

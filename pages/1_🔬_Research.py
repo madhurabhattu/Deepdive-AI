@@ -380,8 +380,7 @@ if generate_clicked:
         st.session_state["ppt_path"] = None
 
         spinner_msg = (
-            f"🔍 Researching **{display_topic}**… "
-            "This may take up to 30 seconds."
+            f"🔍 Researching **{display_topic}**… This may take up to 30 seconds."
         )
         with st.spinner(spinner_msg):
             try:
@@ -403,26 +402,21 @@ if generate_clicked:
 
             except RuntimeError as exc:
                 st.session_state["generating"] = False
-                st.error(
-                    "❌ Research generation failed. Please try again."
-                )
+                st.error("❌ Research generation failed. Please try again.")
                 logger.error("API error: %s", exc)
                 logger.debug(traceback.format_exc())
 
             except ValueError as exc:
                 st.session_state["generating"] = False
                 st.error(
-                    "⚠️ The AI returned an unexpected response format. "
-                    "Please try again."
+                    "⚠️ The AI returned an unexpected response format. Please try again."
                 )
                 logger.error("Schema validation error: %s", exc)
                 logger.debug(traceback.format_exc())
 
             except Exception as exc:
                 st.session_state["generating"] = False
-                st.error(
-                    "❌ An unexpected error occurred. Please try again."
-                )
+                st.error("❌ An unexpected error occurred. Please try again.")
                 logger.error("Unexpected error: %s", exc)
                 logger.debug(traceback.format_exc())
 
@@ -444,6 +438,44 @@ if report is not None:
         """,
         unsafe_allow_html=True,
     )
+
+    # ── Background & Context ─────────────────────────────────────────
+    st.markdown(
+        f"""
+        <div class="section-card">
+            <h3>🌍 Background &amp; Context</h3>
+            <p style="color: #94A3B8; line-height: 1.75; font-size: 1.05rem;">
+                {report.background_context}
+            </p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    # ── Core Concepts ────────────────────────────────────────────────
+    st.markdown(
+        '<div class="section-card"><h3>🔑 Core Concepts &amp; Terminology</h3>',
+        unsafe_allow_html=True,
+    )
+    for concept in report.core_concepts:
+        term = concept.get("term", "Term")
+        definition = concept.get("definition", "Definition")
+        div_c = (
+            '<div style="margin-bottom: 1rem; '
+            'border-left: 3px solid #7C3AED; padding-left: 1rem;">'
+        )
+        term_style = "font-weight: 700; font-size: 1.1rem; color: #F8FAFC;"
+        desc_style = "color: #94A3B8; font-size: 0.95rem; margin-top: 0.25rem;"
+        st.markdown(
+            f"""
+            {div_c}
+                <div style="{term_style}">{term}</div>
+                <div style="{desc_style}">{definition}</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+    st.markdown("</div>", unsafe_allow_html=True)
 
     # ── Key Insights ─────────────────────────────────────────────────
     if len(report.key_insights) < 3:
@@ -496,6 +528,154 @@ if report is not None:
                     unsafe_allow_html=True,
                 )
 
+    # ── Benefits, Challenges & Risks ─────────────────────────────────
+    st.markdown(
+        '<div class="section-card"><h3>⚖️ Benefits, Challenges &amp; Risks</h3>',
+        unsafe_allow_html=True,
+    )
+    col_b, col_c, col_r = st.columns(3)
+
+    with col_b:
+        b_header = (
+            "<h4 style='color: #4ADE80 !important; "
+            "font-size: 1.1rem; margin-bottom: 0.75rem;'>🟢 Benefits</h4>"
+        )
+        st.markdown(b_header, unsafe_allow_html=True)
+        benefits = [
+            item
+            for item in report.benefits_challenges_risks
+            if item.get("type", "").lower() == "benefit"
+        ]
+        if not benefits:
+            benefits = [
+                item
+                for item in report.benefits_challenges_risks
+                if "benefit" in item.get("type", "").lower()
+            ]
+        for b in benefits:
+            div_style = (
+                "background: rgba(74, 222, 128, 0.05); "
+                "border: 1px solid rgba(74, 222, 128, 0.1); "
+                "border-radius: 8px; padding: 0.75rem; margin-bottom: 0.5rem;"
+            )
+            desc_style = "color: #94A3B8; font-size: 0.88rem; margin-top: 0.25rem;"
+            st.markdown(
+                f"""
+                <div style="{div_style}">
+                    <strong style="color: #F8FAFC;">{b.get("item", "")}</strong>
+                    <div style="{desc_style}">{b.get("description", "")}</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+    with col_c:
+        c_header = (
+            "<h4 style='color: #FBBF24 !important; "
+            "font-size: 1.1rem; margin-bottom: 0.75rem;'>🟡 Challenges</h4>"
+        )
+        st.markdown(c_header, unsafe_allow_html=True)
+        challenges = [
+            item
+            for item in report.benefits_challenges_risks
+            if item.get("type", "").lower() == "challenge"
+        ]
+        if not challenges:
+            challenges = [
+                item
+                for item in report.benefits_challenges_risks
+                if "challenge" in item.get("type", "").lower()
+            ]
+        for c in challenges:
+            div_style = (
+                "background: rgba(251, 191, 36, 0.05); "
+                "border: 1px solid rgba(251, 191, 36, 0.1); "
+                "border-radius: 8px; padding: 0.75rem; margin-bottom: 0.5rem;"
+            )
+            desc_style = "color: #94A3B8; font-size: 0.88rem; margin-top: 0.25rem;"
+            st.markdown(
+                f"""
+                <div style="{div_style}">
+                    <strong style="color: #F8FAFC;">{c.get("item", "")}</strong>
+                    <div style="{desc_style}">{c.get("description", "")}</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+    with col_r:
+        r_header = (
+            "<h4 style='color: #F87171 !important; "
+            "font-size: 1.1rem; margin-bottom: 0.75rem;'>🔴 Risks &amp; Trade-offs</h4>"
+        )
+        st.markdown(r_header, unsafe_allow_html=True)
+        risks = [
+            item
+            for item in report.benefits_challenges_risks
+            if item.get("type", "").lower() == "risk"
+        ]
+        if not risks:
+            risks = [
+                item
+                for item in report.benefits_challenges_risks
+                if "risk" in item.get("type", "").lower()
+            ]
+        for r in risks:
+            div_style = (
+                "background: rgba(248, 113, 113, 0.05); "
+                "border: 1px solid rgba(248, 113, 113, 0.1); "
+                "border-radius: 8px; padding: 0.75rem; margin-bottom: 0.5rem;"
+            )
+            desc_style = "color: #94A3B8; font-size: 0.88rem; margin-top: 0.25rem;"
+            st.markdown(
+                f"""
+                <div style="{div_style}">
+                    <strong style="color: #F8FAFC;">{r.get("item", "")}</strong>
+                    <div style="{desc_style}">{r.get("description", "")}</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    # ── Real-World Applications ──────────────────────────────────────
+    st.markdown(
+        '<div class="section-card"><h3>🚀 Real-World Applications</h3>',
+        unsafe_allow_html=True,
+    )
+    for app in report.real_world_applications:
+        application = app.get("application", "Application")
+        description = app.get("description", "Description")
+        div_app = (
+            '<div style="margin-bottom: 1rem; '
+            'border-left: 3px solid #EC4899; padding-left: 1rem;">'
+        )
+        term_style = "font-weight: 700; font-size: 1.1rem; color: #F8FAFC;"
+        desc_style = "color: #94A3B8; font-size: 0.95rem; margin-top: 0.25rem;"
+        st.markdown(
+            f"""
+            {div_app}
+                <div style="{term_style}">{application}</div>
+                <div style="{desc_style}">{description}</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    # ── Future Outlook ───────────────────────────────────────────────
+    st.markdown(
+        '<div class="section-card"><h3>🔮 Future Outlook &amp; Recommendations</h3>',
+        unsafe_allow_html=True,
+    )
+    for outlook in report.future_outlook:
+        st.markdown(
+            f'<div class="insight-item" '
+            f'style="border-left-color: #EC4899;">{outlook}</div>',
+            unsafe_allow_html=True,
+        )
+    st.markdown("</div>", unsafe_allow_html=True)
+
     # ── References ───────────────────────────────────────────────────
     st.markdown(
         '<div class="section-card"><h3>📚 References &amp; Citations</h3></div>',
@@ -520,9 +700,7 @@ if report is not None:
     # ── Download Buttons ─────────────────────────────────────────────
     st.markdown("---")
     st.markdown(
-        '<div class="download-section">'
-        "<h3>⬇_ Download Your Report</h3>"
-        "</div>",
+        '<div class="download-section"><h3>⬇_ Download Your Report</h3></div>',
         unsafe_allow_html=True,
     )
 
@@ -573,6 +751,5 @@ if report is not None:
 else:
     st.markdown("---")
     st.info(
-        "👆 Enter a research topic above and click **Generate Report** "
-        "to get started."
+        "👆 Enter a research topic above and click **Generate Report** to get started."
     )

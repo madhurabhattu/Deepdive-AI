@@ -44,6 +44,7 @@ def _get_api_key() -> str:
     # 1. Try Streamlit secrets
     try:
         import streamlit as st
+
         if hasattr(st, "secrets") and "GEMINI_API_KEY" in st.secrets:
             key = st.secrets["GEMINI_API_KEY"]
             if isinstance(key, str):
@@ -76,16 +77,65 @@ Return your response as a **single JSON object** with exactly these keys:
 
 {{
   "executive_summary": "<a 150-250 word professional summary of the topic>",
+  "background_context": "<a 100-150 word context/industry relevance>",
+  "core_concepts": [
+    {{
+      "term": "<concept or term 1>",
+      "definition": "<concise definition/explanation>"
+    }},
+    {{
+      "term": "<concept or term 2>",
+      "definition": "<concise definition/explanation>"
+    }},
+    {{
+      "term": "<concept or term 3>",
+      "definition": "<concise definition/explanation>"
+    }}
+  ],
   "key_insights": [
-    "<insight 1>",
-    "<insight 2>",
-    "<insight 3>",
-    "<insight 4>",
-    "<insight 5>"
+    "<major discovery, trend, or data-driven finding 1>",
+    "<major discovery, trend, or data-driven finding 2>",
+    "<major discovery, trend, or data-driven finding 3>",
+    "<major discovery, trend, or data-driven finding 4>",
+    "<major discovery, trend, or data-driven finding 5>"
+  ],
+  "benefits_challenges_risks": [
+    {{
+      "item": "<benefit/advantage 1>",
+      "type": "benefit",
+      "description": "<why it is beneficial>"
+    }},
+    {{
+      "item": "<challenge/limitation 1>",
+      "type": "challenge",
+      "description": "<the limitation>"
+    }},
+    {{
+      "item": "<risk/threat 1>",
+      "type": "risk",
+      "description": "<the risk or trade-off>"
+    }}
+  ],
+  "real_world_applications": [
+    {{
+      "application": "<practical use case or success story 1>",
+      "description": "<details of industry adoption>"
+    }},
+    {{
+      "application": "<practical use case or success story 2>",
+      "description": "<details of industry adoption>"
+    }},
+    {{
+      "application": "<practical use case or success story 3>",
+      "description": "<details of industry adoption>"
+    }}
+  ],
+  "future_outlook": [
+    "<emerging trend or strategic recommendation 1>",
+    "<emerging trend or strategic recommendation 2>",
+    "<emerging trend or strategic recommendation 3>"
   ],
   "statistics": [
-    {{"label": "<metric name>", "value": "<metric value>"}},
-    {{"label": "<metric name>", "value": "<metric value>"}},
     {{"label": "<metric name>", "value": "<metric value>"}},
     {{"label": "<metric name>", "value": "<metric value>"}},
     {{"label": "<metric name>", "value": "<metric value>"}}
@@ -121,9 +171,7 @@ Return your response as a **single JSON object** with exactly these keys:
 
 RULES:
 - Return ONLY the JSON object. No markdown fences, no extra text.
-- Provide at least 5 key insights.
-- Provide at least 5 statistics with real, plausible data.
-- Provide at least 5 references with valid-looking URLs.
+- Provide exactly the keys listed.
 - All content must be factual, professional, and well-researched.
 """
 

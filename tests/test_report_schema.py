@@ -16,14 +16,63 @@ from utils.report_schema import ResearchReport, parse_report
 
 # ── Fixtures ────────────────────────────────────────────────────────
 
+
 def _make_valid_data() -> dict:
     """Return a minimal valid report payload."""
     return {
         "executive_summary": "This is a comprehensive overview of quantum computing.",
+        "background_context": (
+            "Quantum computing is an emerging field that utilizes quantum "
+            "mechanics to solve complex problems."
+        ),
+        "core_concepts": [
+            {"term": "Qubit", "definition": "Basic unit of quantum information"},
+            {
+                "term": "Superposition",
+                "definition": "Ability to exist in multiple states simultaneously",
+            },
+            {"term": "Entanglement", "definition": "Quantum link between particles"},
+        ],
         "key_insights": [
             "Quantum computers use qubits instead of classical bits.",
             "Superposition allows qubits to represent 0 and 1 simultaneously.",
             "Quantum entanglement enables faster information processing.",
+        ],
+        "benefits_challenges_risks": [
+            {
+                "item": "High Processing Speed",
+                "type": "benefit",
+                "description": "Solves complex calculations exponentially faster",
+            },
+            {
+                "item": "Physical decoherence",
+                "type": "challenge",
+                "description": "Highly sensitive to external environmental noise",
+            },
+            {
+                "item": "Security threats",
+                "type": "risk",
+                "description": "Could potentially break modern cryptographic standards",
+            },
+        ],
+        "real_world_applications": [
+            {
+                "application": "Cryptography",
+                "description": "Quantum key distribution for secure messaging",
+            },
+            {
+                "application": "Material Science",
+                "description": "Molecular structure modeling for new materials",
+            },
+            {
+                "application": "Logistics",
+                "description": "Route optimization and supply chain management",
+            },
+        ],
+        "future_outlook": [
+            "Development of fault-tolerant logical qubits",
+            "Integration with classical supercomputers",
+            "Emergence of secure quantum internet",
         ],
         "statistics": [
             {"label": "Market Size (2025)", "value": "$8.6 billion"},
@@ -51,6 +100,7 @@ def _make_valid_data() -> dict:
 
 
 # ── Happy Path ──────────────────────────────────────────────────────
+
 
 class TestParseReportValid:
     """Tests for valid AI responses."""
@@ -95,6 +145,7 @@ class TestParseReportValid:
 
 
 # ── Error Cases ─────────────────────────────────────────────────────
+
 
 class TestParseReportErrors:
     """Tests for invalid AI responses."""

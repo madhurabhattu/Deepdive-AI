@@ -26,19 +26,63 @@ def mock_report() -> ResearchReport:
             "quantum mechanical phenomena to perform computations far beyond "
             "the capabilities of classical computers."
         ),
+        background_context=(
+            "Quantum computing is an emerging field that utilizes quantum "
+            "mechanics to solve complex problems."
+        ),
+        core_concepts=[
+            {"term": "Qubit", "definition": "Basic unit of quantum information"},
+            {
+                "term": "Superposition",
+                "definition": "Ability to exist in multiple states simultaneously",
+            },
+            {"term": "Entanglement", "definition": "Quantum link between particles"},
+        ],
         key_insights=[
             "Quantum computers use qubits instead of classical bits.",
             "Superposition allows qubits to represent 0 and 1 simultaneously.",
             "Quantum entanglement enables faster information processing.",
-            "Error correction remains a major research challenge.",
-            "Commercial quantum advantage is expected within the next decade.",
+        ],
+        benefits_challenges_risks=[
+            {
+                "item": "High Processing Speed",
+                "type": "benefit",
+                "description": "Solves complex calculations exponentially faster",
+            },
+            {
+                "item": "Physical decoherence",
+                "type": "challenge",
+                "description": "Highly sensitive to external environmental noise",
+            },
+            {
+                "item": "Security threats",
+                "type": "risk",
+                "description": "Could potentially break modern cryptographic standards",
+            },
+        ],
+        real_world_applications=[
+            {
+                "application": "Cryptography",
+                "description": "Quantum key distribution for secure messaging",
+            },
+            {
+                "application": "Material Science",
+                "description": "Molecular structure modeling for new materials",
+            },
+            {
+                "application": "Logistics",
+                "description": "Route optimization and supply chain management",
+            },
+        ],
+        future_outlook=[
+            "Development of fault-tolerant logical qubits",
+            "Integration with classical supercomputers",
+            "Emergence of secure quantum internet",
         ],
         statistics=[
             {"label": "Market Size (2025)", "value": "$8.6 billion"},
             {"label": "CAGR 2025-2030", "value": "32.7%"},
             {"label": "Active Research Labs", "value": "200+"},
-            {"label": "Qubits in Leading Systems", "value": "1,121"},
-            {"label": "Investment in 2024", "value": "$1.2 billion"},
         ],
         references=[
             {
