@@ -240,7 +240,8 @@ def _call_gemini(
                 temperature=0.7,
             ),
         )
-        raw_text = response.text.strip()
+        raw_text: str = response.text or ""
+        raw_text = raw_text.strip()
         logger.info(
             "Gemini returned %d chars for topic '%s' [lang=%s]",
             len(raw_text),

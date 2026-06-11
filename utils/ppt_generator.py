@@ -10,6 +10,7 @@ import logging
 import re
 from datetime import datetime
 from pathlib import Path
+from typing import cast
 
 from pptx import Presentation
 from pptx.dml.color import RGBColor
@@ -59,10 +60,10 @@ def _get_font_name(lang: str = "en") -> str:
 
 def _add_card(
     slide,
-    left: Inches,
-    top: Inches,
-    width: Inches,
-    height: Inches,
+    left: int,
+    top: int,
+    width: int,
+    height: int,
     bg_color: RGBColor = CARD_BG_COLOR,
     border_color: RGBColor = BORDER_COLOR,
 ):
@@ -82,10 +83,10 @@ def _add_card(
 
 def _add_textbox(
     slide,
-    left: Inches,
-    top: Inches,
-    width: Inches,
-    height: Inches,
+    left: int,
+    top: int,
+    width: int,
+    height: int,
     text: str,
     font_size: int = 14,
     bold: bool = False,
@@ -270,7 +271,7 @@ def build_ppt(report: ResearchReport, lang: str = "en") -> str:
     # Place up to 3 metrics in the right column
     metrics = report.statistics[:3]
     for idx, metric in enumerate(metrics):
-        top_offset = Inches(2.6 + idx * 1.3)
+        top_offset: int = Inches(2.6 + idx * 1.3)
         _add_textbox(
             slide,
             Inches(8.9),
@@ -359,7 +360,7 @@ def build_ppt(report: ResearchReport, lang: str = "en") -> str:
     # 3-Column Concept Cards
     col_width = Inches(3.64)
     for idx, concept in enumerate(report.core_concepts[:3]):
-        left_pos = Inches(0.8 + idx * 4.04)
+        left_pos: int = Inches(0.8 + idx * 4.04)
         _add_card(slide, left_pos, Inches(1.8), col_width, Inches(4.8))
 
         # Concept Index
@@ -455,7 +456,9 @@ def build_ppt(report: ResearchReport, lang: str = "en") -> str:
     )
 
     stats_list = (
-        report.statistics[3:6] if len(report.statistics) >= 6 else report.statistics[:3]
+        report.statistics[3:6]
+        if len(report.statistics) >= 6
+        else report.statistics[:3]
     )
     for idx, stat in enumerate(stats_list):
         top_offset = Inches(2.6 + idx * 1.3)
@@ -522,17 +525,22 @@ def build_ppt(report: ResearchReport, lang: str = "en") -> str:
     ]
 
     for col in columns_data:
-        _add_card(slide, col["left"], Inches(1.8), col_width, Inches(4.8))
+        col_left: int = cast(int, col["left"])
+        col_color: RGBColor = cast(RGBColor, col["color"])
+        col_title: str = cast(str, col["title"])
+        col_type: str = cast(str, col["type"])
+
+        _add_card(slide, col_left, Inches(1.8), col_width, Inches(4.8))
         _add_textbox(
             slide,
-            col["left"] + Inches(0.3),
+            col_left + Inches(0.3),
             Inches(2.1),
             col_width - Inches(0.6),
             Inches(0.4),
-            col["title"],
+            col_title,
             font_size=11,
             bold=True,
-            color=col["color"],
+            color=col_color,
             lang=lang,
         )
 
@@ -540,17 +548,17 @@ def build_ppt(report: ResearchReport, lang: str = "en") -> str:
         items = [
             i
             for i in report.benefits_challenges_risks
-            if i.get("type", "").lower() == col["type"]
+            if i.get("type", "").lower() == col_type
         ]
         if not items:
             items = [
                 i
                 for i in report.benefits_challenges_risks
-                if col["type"] in i.get("type", "").lower()
+                if col_type in i.get("type", "").lower()
             ]
 
         tx_box = slide.shapes.add_textbox(
-            col["left"] + Inches(0.3),
+            col_left + Inches(0.3),
             Inches(2.6),
             col_width - Inches(0.6),
             Inches(3.8),
@@ -560,7 +568,9 @@ def build_ppt(report: ResearchReport, lang: str = "en") -> str:
 
         for idx, it in enumerate(items[:3]):
             p = tf.paragraphs[0] if idx == 0 else tf.add_paragraph()
-            p.text = f"▸ {it.get('item', 'Item')}\n  {it.get('description', '')}"
+            p.text = (
+                f"\u25b8 {it.get('item', 'Item')}\n  {it.get('description', '')}"
+            )
             p.font.name = _get_font_name(lang)
             p.font.size = Pt(12)
             p.font.color.rgb = TEXT_PRIMARY
