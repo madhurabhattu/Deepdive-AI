@@ -8,34 +8,47 @@ cache:
   paths:
     - .pip-cache/
 
-lint:
+# ── Lint: Ruff ─────────────────────────────────────────────────────────────
+ruff:
   stage: lint
   image: python:3.11-slim
   before_script:
     - pip install --cache-dir .pip-cache ruff
   script:
-    - |
-      if [ -f pyproject.toml ] && grep -q "tool.ruff" pyproject.toml; then
-        echo "Running Ruff check..."
-        ruff check .
-      else
-        echo "Ruff not configured in pyproject.toml. Skipping."
-      fi
+    - echo "Running Ruff check..."
+    - ruff check .
 
+# ── Lint: MyPy ─────────────────────────────────────────────────────────────
+mypy:
+  stage: lint
+  image: python:3.11-slim
+  before_script:
+    - pip install --cache-dir .pip-cache -r requirements.txt mypy
+  script:
+    - echo "Running MyPy type checks..."
+    - mypy .
+
+# ── Test: pytest with coverage ─────────────────────────────────────────────
 test:
   stage: test
   image: python:3.11-slim
   before_script:
-    - pip install --cache-dir .pip-cache -r requirements.txt
+    - pip install --cache-dir .pip-cache -r requirements.txt pytest-cov
   script:
-    - |
-      if [ -d tests ]; then
-        echo "Running pytest..."
-        pytest tests/ -v --tb=short
-      else
-        echo "No tests folder found. Skipping."
-      fi
+    - echo "Running pytest with coverage..."
+    - pytest --cov=. --cov-report=xml --cov-report=term --tb=short
+  coverage: '/(?i)total.*? (100|\d{1,2}\.?\d*)%/'
+  artifacts:
+    when: always
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage.xml
+    paths:
+      - coverage.xml
+    expire_in: 30 days
 
+# ── Build: import validation ────────────────────────────────────────────────
 build:
   stage: build
   image: python:3.11-slim
