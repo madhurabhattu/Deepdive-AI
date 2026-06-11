@@ -1,14 +1,12 @@
 """
-DeepDive AI — Gemini AI Client
+DeepDive AI — AI Client (Multi-Backend)
 
-Sends structured prompts to the Gemini API and returns the raw JSON
-string for downstream parsing by report_schema.parse_report().
+Supports two AI provider backends:
+  - Gemini API  (cloud, BYOK)
+  - Ollama      (local inference, no key required)
 
-Responsibilities:
-- Load GEMINI_API_KEY from environment (via python-dotenv).
-- Construct the research prompt.
-- Call gemini-2.5-flash and return raw JSON.
-- Raise RuntimeError on API failures.
+The active backend is driven by st.session_state["ai_provider"] and
+st.session_state["byok_api_key"] set from the sidebar UI.
 """
 
 from __future__ import annotations
@@ -17,55 +15,16 @@ import json
 import logging
 import os
 from pathlib import Path
+from typing import Any
 
 from dotenv import load_dotenv
-from google import genai
-from google.genai import types
 
 logger = logging.getLogger(__name__)
 
-# Load .env from project root
+# Load .env from project root (development only)
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
-
-def _get_api_key() -> str:
-    """Retrieve the Gemini API key from various configuration sources.
-
-    Priority order:
-    1. Streamlit secrets (for deployment)
-    2. Environment variables (set directly in OS/container)
-    3. Local .env file (development only)
-
-    Raises
-    ------
-    OSError
-        If GEMINI_API_KEY is not set or is set to a placeholder.
-    """
-    # 1. Try Streamlit secrets
-    try:
-        import streamlit as st
-
-        if hasattr(st, "secrets") and "GEMINI_API_KEY" in st.secrets:
-            key = st.secrets["GEMINI_API_KEY"]
-            if isinstance(key, str):
-                key = key.strip()
-                if key and key != "your_gemini_api_key_here":
-                    logger.info("Loaded GEMINI_API_KEY from Streamlit secrets.")
-                    return key
-    except Exception as exc:
-        logger.debug("Failed to load API key from Streamlit secrets: %s", exc)
-
-    # 2. Try environment variables (populated by load_dotenv from .env if present)
-    key = os.getenv("GEMINI_API_KEY", "").strip()
-    if key and key != "your_gemini_api_key_here":
-        logger.info("Loaded GEMINI_API_KEY from environment variables.")
-        return key
-
-    raise OSError(
-        "GEMINI_API_KEY is not configured. Please configure it in "
-        "Streamlit Secrets, environment variables, or your .env file."
-    )
-
+# ── Prompt template (shared across backends) ────────────────────────────────
 
 _RESEARCH_PROMPT_TEMPLATE = """\
 You are an expert research analyst. Given the topic below, produce a
@@ -175,32 +134,59 @@ RULES:
 - All content must be factual, professional, and well-researched.
 """
 
+# ── Ollama supported models ──────────────────────────────────────────────────
 
-def generate_research_report(topic: str, report_lang: str = "en") -> str:
-    """Send a research prompt to Gemini and return the raw JSON response.
+OLLAMA_MODELS = ["llama3", "mistral", "gemma", "qwen"]
+OLLAMA_BASE_URL = "http://localhost:11434"
 
-    Parameters
-    ----------
-    topic : str
-        The user-provided research topic.
-    report_lang : str
-        The language code ('en', 'hi', 'mr', 'te') for the output report.
+# ── Gemini backend ───────────────────────────────────────────────────────────
 
-    Returns
-    -------
-    str
-        Raw JSON string matching the ResearchReport schema.
+
+def _get_gemini_api_key(byok_key: str | None = None) -> str:
+    """Resolve the Gemini API key from BYOK input, then secrets, then env.
+
+    Priority order
+    --------------
+    1. ``byok_key`` supplied directly from the sidebar UI.
+    2. ``st.secrets["GEMINI_API_KEY"]`` (Streamlit Cloud deployment).
+    3. ``GEMINI_API_KEY`` environment variable / ``.env`` file.
 
     Raises
     ------
-    EnvironmentError
-        If the API key is missing.
-    RuntimeError
-        If the Gemini API call fails for any reason.
+    OSError
+        If no valid key is found from any source.
     """
-    api_key = _get_api_key()
-    client = genai.Client(api_key=api_key)
+    # 1. BYOK from session state / caller
+    if byok_key and byok_key.strip() not in ("", "your_gemini_api_key_here"):
+        logger.info("Using BYOK Gemini API key from sidebar input.")
+        return byok_key.strip()
 
+    # 2. Streamlit secrets
+    try:
+        import streamlit as st
+
+        if hasattr(st, "secrets") and "GEMINI_API_KEY" in st.secrets:
+            key = str(st.secrets["GEMINI_API_KEY"]).strip()
+            if key and key != "your_gemini_api_key_here":
+                logger.info("Loaded GEMINI_API_KEY from Streamlit secrets.")
+                return key
+    except Exception as exc:
+        logger.debug("Streamlit secrets unavailable: %s", exc)
+
+    # 3. Environment variable / .env
+    key = os.getenv("GEMINI_API_KEY", "").strip()
+    if key and key != "your_gemini_api_key_here":
+        logger.info("Loaded GEMINI_API_KEY from environment variables.")
+        return key
+
+    raise OSError(
+        "GEMINI_API_KEY is not configured. Enter your key in the sidebar "
+        "or configure it in Streamlit Secrets / your .env file."
+    )
+
+
+def _build_prompt(topic: str, report_lang: str) -> str:
+    """Build the full research prompt including any localisation directive."""
     lang_names = {
         "en": "English",
         "hi": "Hindi",
@@ -208,8 +194,8 @@ def generate_research_report(topic: str, report_lang: str = "en") -> str:
         "te": "Telugu",
     }
     lang_name = lang_names.get(report_lang, "English")
-
     prompt = _RESEARCH_PROMPT_TEMPLATE.format(topic=topic)
+
     if report_lang != "en":
         prompt += (
             f"\nCRITICAL LOCALIZATION RULE:\n"
@@ -219,10 +205,31 @@ def generate_research_report(topic: str, report_lang: str = "en") -> str:
             f"key insights, benefits, descriptions, applications, future "
             f"outlooks, metrics labels, reference snippets, etc.) "
             f"fully into {lang_name}.\n"
-            f'- Keep the JSON keys exactly in English (e.g. "executive_summary", '
-            f'"term", "definition", "type", etc.) as defined in the schema '
+            f'- Keep the JSON keys exactly in English (e.g. "executive_summary",'
+            f' "term", "definition", "type", etc.) as defined in the schema '
             f"template. Do NOT translate the JSON keys."
         )
+    return prompt
+
+
+def _call_gemini(
+    topic: str,
+    report_lang: str = "en",
+    byok_key: str | None = None,
+) -> str:
+    """Call the Gemini API and return raw JSON string.
+
+    Raises
+    ------
+    RuntimeError
+        On API failure or JSON parse error.
+    """
+    from google import genai
+    from google.genai import types
+
+    api_key = _get_gemini_api_key(byok_key)
+    client = genai.Client(api_key=api_key)
+    prompt = _build_prompt(topic, report_lang)
 
     try:
         response = client.models.generate_content(
@@ -233,22 +240,169 @@ def generate_research_report(topic: str, report_lang: str = "en") -> str:
                 temperature=0.7,
             ),
         )
-
         raw_text = response.text.strip()
         logger.info(
-            "Gemini returned %d characters for topic '%s' in language '%s'",
+            "Gemini returned %d chars for topic '%s' [lang=%s]",
             len(raw_text),
             topic,
             report_lang,
         )
-
-        # Quick sanity check: is this parseable JSON?
-        json.loads(raw_text)
-
+        json.loads(raw_text)  # sanity check
         return raw_text
 
     except Exception as exc:
-        logger.error("Gemini API call failed for topic '%s': %s", topic, exc)
+        logger.error("Gemini API call failed: %s", exc)
         raise RuntimeError(
-            f"Research generation failed. Please try again. (Detail: {exc})"
+            f"Gemini generation failed. Please try again. (Detail: {exc})"
         ) from exc
+
+
+# ── Ollama backend ───────────────────────────────────────────────────────────
+
+
+def _check_ollama_available() -> None:
+    """Verify that the Ollama server is reachable.
+
+    Raises
+    ------
+    RuntimeError
+        If Ollama is not running or not reachable.
+    """
+    import urllib.error
+    import urllib.request
+
+    try:
+        req = urllib.request.Request(
+            f"{OLLAMA_BASE_URL}/api/tags",
+            headers={"Accept": "application/json"},
+        )
+        with urllib.request.urlopen(req, timeout=5):
+            pass
+    except urllib.error.URLError as exc:
+        raise RuntimeError(
+            f"Ollama is not running at {OLLAMA_BASE_URL}. "
+            "Start it with: `ollama serve`"
+        ) from exc
+
+
+def _call_ollama(
+    topic: str,
+    model: str,
+    report_lang: str = "en",
+) -> str:
+    """Call a local Ollama model and return raw JSON string.
+
+    Parameters
+    ----------
+    topic:
+        Research topic string.
+    model:
+        One of ``OLLAMA_MODELS``.
+    report_lang:
+        Language code for the output report.
+
+    Raises
+    ------
+    ValueError
+        If ``model`` is not in the allowed list.
+    RuntimeError
+        If Ollama is unreachable or the response is not valid JSON.
+    """
+    import urllib.error
+    import urllib.request
+
+    if model not in OLLAMA_MODELS:
+        raise ValueError(
+            f"Invalid Ollama model '{model}'. "
+            f"Allowed: {', '.join(OLLAMA_MODELS)}"
+        )
+
+    _check_ollama_available()
+
+    prompt = _build_prompt(topic, report_lang)
+    payload: dict[str, Any] = {
+        "model": model,
+        "prompt": prompt,
+        "stream": False,
+        "format": "json",
+        "options": {"temperature": 0.7},
+    }
+    data = json.dumps(payload).encode("utf-8")
+
+    try:
+        req = urllib.request.Request(
+            f"{OLLAMA_BASE_URL}/api/generate",
+            data=data,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=120) as resp:
+            body = json.loads(resp.read().decode("utf-8"))
+
+        raw_text: str = body.get("response", "").strip()
+        logger.info(
+            "Ollama (%s) returned %d chars for topic '%s' [lang=%s]",
+            model,
+            len(raw_text),
+            topic,
+            report_lang,
+        )
+        json.loads(raw_text)  # sanity check
+        return raw_text
+
+    except urllib.error.URLError as exc:
+        logger.error("Ollama request failed: %s", exc)
+        raise RuntimeError(
+            f"Ollama request failed. Is it running? (Detail: {exc})"
+        ) from exc
+    except (KeyError, json.JSONDecodeError) as exc:
+        logger.error("Ollama returned invalid JSON: %s", exc)
+        raise RuntimeError(
+            f"Ollama returned an unexpected response format. (Detail: {exc})"
+        ) from exc
+
+
+# ── Public interface ─────────────────────────────────────────────────────────
+
+
+def generate_research_report(
+    topic: str,
+    report_lang: str = "en",
+    provider: str = "gemini",
+    byok_key: str | None = None,
+    ollama_model: str = "llama3",
+) -> str:
+    """Generate a structured research report using the selected AI provider.
+
+    Parameters
+    ----------
+    topic:
+        User-provided research topic.
+    report_lang:
+        Language code ('en', 'hi', 'mr', 'te') for report content.
+    provider:
+        ``'gemini'`` (cloud) or ``'ollama'`` (local).
+    byok_key:
+        Optional Gemini API key entered by the user in the sidebar.
+    ollama_model:
+        Local model to use when ``provider='ollama'``.
+
+    Returns
+    -------
+    str
+        Raw JSON string matching the ResearchReport schema.
+
+    Raises
+    ------
+    ValueError
+        On invalid ``provider`` or ``ollama_model``.
+    RuntimeError
+        On any backend failure.
+    """
+    if provider == "gemini":
+        return _call_gemini(topic, report_lang, byok_key=byok_key)
+    if provider == "ollama":
+        return _call_ollama(topic, model=ollama_model, report_lang=report_lang)
+    raise ValueError(
+        f"Unknown AI provider '{provider}'. Use 'gemini' or 'ollama'."
+    )

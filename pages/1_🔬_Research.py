@@ -19,7 +19,7 @@ import traceback
 
 import streamlit as st
 
-from utils.ai_client import generate_research_report
+from utils.ai_client import OLLAMA_MODELS, generate_research_report
 from utils.localization import LANGUAGES, detect_browser_language, get_text
 from utils.pdf_generator import build_pdf
 from utils.ppt_generator import build_ppt
@@ -47,6 +47,12 @@ if "pdf_path" not in st.session_state:
     st.session_state["pdf_path"] = None
 if "ppt_path" not in st.session_state:
     st.session_state["ppt_path"] = None
+if "ai_provider" not in st.session_state:
+    st.session_state["ai_provider"] = "gemini"
+if "byok_api_key" not in st.session_state:
+    st.session_state["byok_api_key"] = ""
+if "ollama_model" not in st.session_state:
+    st.session_state["ollama_model"] = OLLAMA_MODELS[0]
 
 lang = st.session_state["ui_lang"]
 report_lang = st.session_state["report_lang"]
@@ -61,6 +67,14 @@ st.markdown(
     html, body, [class*="st-"] {
         font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
         color: #F8FAFC;
+    }
+
+    /* Fix Streamlit Material Icons font family override glitch */
+    [data-testid="collapsedControl"] span,
+    [data-testid="stIconMaterial"],
+    .material-symbols-outlined,
+    .material-icons {
+        font-family: 'Material Symbols Outlined', 'Material Icons' !important;
     }
 
     h1, h2, h3, h4, h5, h6 {
@@ -347,6 +361,73 @@ with st.sidebar:
     st.markdown(f"### {get_text('app_title', lang)}")
     st.caption(get_text("app_tagline", lang))
     st.divider()
+
+    # ── AI Provider selector ──────────────────────────────────────
+    st.markdown("#### 🤖 AI Provider")
+    provider_options = {
+        "gemini": "☁️ Gemini API",
+        "ollama": "🖥️ Ollama Local",
+    }
+    selected_provider = st.selectbox(
+        "AI Provider",
+        options=list(provider_options.keys()),
+        format_func=lambda k: provider_options[k],
+        index=list(provider_options.keys()).index(
+            st.session_state["ai_provider"]
+        ),
+        key="ai_provider_selector_research",
+        label_visibility="collapsed",
+    )
+    if selected_provider != st.session_state["ai_provider"]:
+        st.session_state["ai_provider"] = selected_provider
+        st.rerun()
+
+    if st.session_state["ai_provider"] == "gemini":
+        byok_input = st.text_input(
+            "🔑 Gemini API Key",
+            value=st.session_state["byok_api_key"],
+            type="password",
+            placeholder="Paste key, or leave blank to use secrets",
+            key="byok_key_input_research",
+            help="Stored only in this browser session.",
+        )
+        st.session_state["byok_api_key"] = byok_input
+        st.markdown(
+            "<div style='"
+            "background:rgba(124,58,237,0.12);"
+            "border-left:3px solid #7C3AED;"
+            "padding:6px 10px;border-radius:6px;"
+            "font-size:0.78rem;color:#A855F7;margin-top:4px'"
+            ">☁️ Active: Gemini API</div>",
+            unsafe_allow_html=True,
+        )
+    else:
+        selected_model = st.selectbox(
+            "🧠 Local Model",
+            options=OLLAMA_MODELS,
+            index=(
+                OLLAMA_MODELS.index(st.session_state["ollama_model"])
+                if st.session_state["ollama_model"] in OLLAMA_MODELS
+                else 0
+            ),
+            key="ollama_model_selector_research",
+        )
+        st.session_state["ollama_model"] = selected_model
+        st.caption(
+            "Requires **Ollama** running on port 11434. "
+            "[Install](https://ollama.com/download)"
+        )
+        st.markdown(
+            "<div style='"
+            "background:rgba(16,185,129,0.12);"
+            "border-left:3px solid #10B981;"
+            "padding:6px 10px;border-radius:6px;"
+            "font-size:0.78rem;color:#34D399;margin-top:4px'"
+            f">🖥️ Active: Ollama · {selected_model}</div>",
+            unsafe_allow_html=True,
+        )
+
+    st.divider()
     st.markdown(
         f"**{get_text('how_to_use', lang)}**\n\n"
         f"{get_text('step_1', lang)}\n\n"
@@ -356,8 +437,10 @@ with st.sidebar:
     )
     st.divider()
     st.markdown(
-        f"{get_text('built_with', lang)} [Streamlit](https://streamlit.io) "
-        "& [Gemini AI](https://ai.google.dev)",
+        f"{get_text('built_with', lang)} "
+        "[Streamlit](https://streamlit.io) & "
+        "[Gemini AI](https://ai.google.dev) / "
+        "[Ollama](https://ollama.com)",
     )
 
 # ── Header & Language Switchers Row ──────────────────────────────────
@@ -443,11 +526,17 @@ if generate_clicked:
         st.session_state["pdf_path"] = None
         st.session_state["ppt_path"] = None
 
-        spinner_msg = get_text("spinner_msg", lang).format(topic=display_topic)
+        spinner_msg = get_text("spinner_msg", lang).format(
+            topic=display_topic
+        )
         with st.spinner(spinner_msg):
             try:
                 raw_json = generate_research_report(
-                    topic.strip(), report_lang=st.session_state["report_lang"]
+                    topic.strip(),
+                    report_lang=st.session_state["report_lang"],
+                    provider=st.session_state["ai_provider"],
+                    byok_key=st.session_state["byok_api_key"] or None,
+                    ollama_model=st.session_state["ollama_model"],
                 )
                 parsed_report = parse_report(raw_json, topic=topic.strip())
                 st.session_state["report"] = parsed_report
@@ -462,14 +551,22 @@ if generate_clicked:
 
             except RuntimeError as exc:
                 st.session_state["generating"] = False
-                st.error(get_text("err_generation", lang))
+                err_detail = str(exc)
+                if "Ollama" in err_detail or "localhost:11434" in err_detail:
+                    st.error(
+                        "🖥️ **Ollama not reachable.** "
+                        "Make sure Ollama is installed and running: "
+                        "`ollama serve`"
+                    )
+                else:
+                    st.error(get_text("err_generation", lang))
                 logger.error("API error: %s", exc)
                 logger.debug(traceback.format_exc())
 
             except ValueError as exc:
                 st.session_state["generating"] = False
                 st.error(get_text("err_schema", lang))
-                logger.error("Schema validation error: %s", exc)
+                logger.error("Schema / model error: %s", exc)
                 logger.debug(traceback.format_exc())
 
             except Exception as exc:

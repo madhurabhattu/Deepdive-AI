@@ -12,6 +12,7 @@ from pathlib import Path
 
 import streamlit as st
 
+from utils.ai_client import OLLAMA_MODELS
 from utils.localization import LANGUAGES, detect_browser_language, get_text
 
 # ── Logging Configuration ───────────────────────────────────────────
@@ -35,6 +36,12 @@ st.set_page_config(
 # ── Session State Defaults ──────────────────────────────────────────
 if "ui_lang" not in st.session_state:
     st.session_state["ui_lang"] = detect_browser_language()
+if "ai_provider" not in st.session_state:
+    st.session_state["ai_provider"] = "gemini"
+if "byok_api_key" not in st.session_state:
+    st.session_state["byok_api_key"] = ""
+if "ollama_model" not in st.session_state:
+    st.session_state["ollama_model"] = OLLAMA_MODELS[0]
 
 # ── Global Custom CSS (T021) ────────────────────────────────────────
 st.markdown(
@@ -46,6 +53,14 @@ st.markdown(
     html, body, [class*="st-"] {
         font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
         color: #F8FAFC;
+    }
+
+    /* Fix Streamlit Material Icons font family override glitch */
+    [data-testid="collapsedControl"] span,
+    [data-testid="stIconMaterial"],
+    .material-symbols-outlined,
+    .material-icons {
+        font-family: 'Material Symbols Outlined', 'Material Icons' !important;
     }
 
     h1, h2, h3, h4, h5, h6 {
@@ -311,6 +326,82 @@ with st.sidebar:
     st.markdown(f"### {get_text('app_title', lang)}")
     st.caption(get_text("app_tagline", lang))
     st.divider()
+
+    # ── AI Provider selector ──────────────────────────────────────
+    st.markdown("#### 🤖 AI Provider")
+    provider_options = {
+        "gemini": "☁️ Gemini API",
+        "ollama": "🖥️ Ollama Local",
+    }
+    selected_provider = st.selectbox(
+        "AI Provider",
+        options=list(provider_options.keys()),
+        format_func=lambda k: provider_options[k],
+        index=list(provider_options.keys()).index(
+            st.session_state["ai_provider"]
+        ),
+        key="ai_provider_selector",
+        label_visibility="collapsed",
+    )
+    if selected_provider != st.session_state["ai_provider"]:
+        st.session_state["ai_provider"] = selected_provider
+        st.rerun()
+
+    if st.session_state["ai_provider"] == "gemini":
+        # ── BYOK key input ────────────────────────────────────────
+        byok_input = st.text_input(
+            "🔑 Gemini API Key",
+            value=st.session_state["byok_api_key"],
+            type="password",
+            placeholder="Paste your API key or leave blank to use secrets",
+            key="byok_key_input_app",
+            help=(
+                "Your key is stored only in this browser session. "
+                "Get one free at ai.google.dev"
+            ),
+        )
+        st.session_state["byok_api_key"] = byok_input
+        st.caption(
+            "Using **Gemini API** · "
+            "[Get a free key](https://ai.google.dev)"
+        )
+        st.markdown(
+            "<div style='"
+            "background:rgba(124,58,237,0.12);"
+            "border-left:3px solid #7C3AED;"
+            "padding:6px 10px;border-radius:6px;"
+            "font-size:0.78rem;color:#A855F7;margin-top:4px'"
+            ">☁️ Provider: Gemini API</div>",
+            unsafe_allow_html=True,
+        )
+    else:
+        # ── Ollama model selector ─────────────────────────────────
+        selected_model = st.selectbox(
+            "🧠 Local Model",
+            options=OLLAMA_MODELS,
+            index=(
+                OLLAMA_MODELS.index(st.session_state["ollama_model"])
+                if st.session_state["ollama_model"] in OLLAMA_MODELS
+                else 0
+            ),
+            key="ollama_model_selector_app",
+        )
+        st.session_state["ollama_model"] = selected_model
+        st.caption(
+            "Requires **Ollama** running locally on port 11434. "
+            "[Install Ollama](https://ollama.com/download)"
+        )
+        st.markdown(
+            "<div style='"
+            "background:rgba(16,185,129,0.12);"
+            "border-left:3px solid #10B981;"
+            "padding:6px 10px;border-radius:6px;"
+            "font-size:0.78rem;color:#34D399;margin-top:4px'"
+            f">🖥️ Provider: Ollama · {selected_model}</div>",
+            unsafe_allow_html=True,
+        )
+
+    st.divider()
     st.markdown(
         f"**{get_text('how_to_use', lang)}**\n\n"
         f"{get_text('step_1', lang)}\n\n"
@@ -320,8 +411,10 @@ with st.sidebar:
     )
     st.divider()
     st.markdown(
-        f"{get_text('built_with', lang)} [Streamlit](https://streamlit.io) "
-        "& [Gemini AI](https://ai.google.dev)",
+        f"{get_text('built_with', lang)} "
+        "[Streamlit](https://streamlit.io) & "
+        "[Gemini AI](https://ai.google.dev) / "
+        "[Ollama](https://ollama.com)",
     )
 
 # ── Top Navigation / Language Switcher Row ──────────────────────────
