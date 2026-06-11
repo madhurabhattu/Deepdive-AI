@@ -38,152 +38,292 @@ st.set_page_config(
 st.markdown(
     """
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
 
-    /* Global typography */
+    /* ─── Global Styling ─── */
     html, body, [class*="st-"] {
-        font-family: 'Inter', sans-serif;
+        font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+        color: #F8FAFC;
     }
 
-    /* Main header styling */
-    .main-header {
-        background: linear-gradient(135deg, #1a237e 0%, #0d47a1 50%, #1565c0 100%);
-        padding: 2rem 2.5rem;
-        border-radius: 16px;
-        margin-bottom: 2rem;
-        box-shadow: 0 8px 32px rgba(26, 35, 126, 0.25);
-    }
-    .main-header h1 {
-        color: #ffffff;
-        font-size: 2.2rem;
-        font-weight: 700;
-        margin: 0;
+    h1, h2, h3, h4, h5, h6 {
+        font-family: 'Outfit', -apple-system, sans-serif;
+        font-weight: 700 !important;
+        color: #F8FAFC !important;
         letter-spacing: -0.02em;
     }
-    .main-header p {
-        color: #c5cae9;
-        font-size: 1.05rem;
-        margin: 0.5rem 0 0 0;
+
+    :root {
+        --background-color: #0B0F19;
+        --secondary-bg: #111827;
+        --card-bg: #1A2236;
+        --accent-1: #7C3AED;
+        --accent-2: #A855F7;
+        --accent-3: #EC4899;
+        --text-primary: #F8FAFC;
+        --text-secondary: #94A3B8;
+        --border-color: rgba(255, 255, 255, 0.08);
+        --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
+        --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
+        --shadow-lg: 0 10px 30px rgba(124, 58, 237, 0.15);
+        --radius-sm: 8px;
+        --radius-md: 12px;
+        --radius-lg: 16px;
     }
 
-    /* Section cards */
-    .section-card {
-        background: #ffffff;
-        border: 1px solid #e8eaf6;
-        border-radius: 12px;
-        padding: 1.5rem 1.8rem;
-        margin-bottom: 1.2rem;
-        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
-        transition: box-shadow 0.2s ease;
+    .stApp {
+        background-color: #0B0F19 !important;
+        background-image: radial-gradient(
+            circle at 10% 20%,
+            rgba(124, 58, 237, 0.06) 0%,
+            transparent 45/
+        ),
+        radial-gradient(
+            circle at 90% 80%,
+            rgba(236, 72, 153, 0.06) 0%,
+            transparent 45/
+        ) !important;
     }
-    .section-card:hover {
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+
+    /* ─── Sidebar Styling ─── */
+    [data-testid="stSidebar"] {
+        background-color: #111827 !important;
+        border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
+    }
+    [data-testid="stSidebar"] * {
+        color: #94A3B8 !important;
+    }
+    [data-testid="stSidebar"] h3 {
+        color: #F8FAFC !important;
+        background: linear-gradient(135deg, #A855F7 0%, #EC4899 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-weight: 800 !important;
+    }
+    [data-testid="stSidebar"] .stMarkdown a {
+        color: #EC4899 !important;
+        font-weight: 500;
+        text-decoration: none;
+    }
+    [data-testid="stSidebar"] .stMarkdown a:hover {
+        text-decoration: underline;
+    }
+
+    /* ─── Form Elements Override ─── */
+    .stTextInput input {
+        background-color: #1A2236 !important;
+        color: #F8FAFC !important;
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        border-radius: var(--radius-md) !important;
+        padding: 0.75rem 1rem !important;
+        font-size: 1rem !important;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    }
+    .stTextInput input:focus {
+        border-color: #A855F7 !important;
+        box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.25) !important;
+    }
+
+    /* ─── Buttons Override ─── */
+    .stButton > button, .stDownloadButton > button {
+        background: linear-gradient(135deg, #7C3AED 0%, #EC4899 100%) !important;
+        color: #FFFFFF !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        border-radius: var(--radius-md) !important;
+        padding: 0.65rem 1.5rem !important;
+        font-weight: 600 !important;
+        letter-spacing: 0.01em !important;
+        box-shadow: 0 4px 15px rgba(124, 58, 237, 0.3) !important;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    }
+    .stButton > button:hover, .stDownloadButton > button:hover {
+        transform: translateY(-2px) !important;
+        box-shadow: 0 6px 20px rgba(236, 72, 153, 0.4) !important;
+        border-color: rgba(255, 255, 255, 0.2) !important;
+    }
+    .stButton > button:active, .stDownloadButton > button:active {
+        transform: translateY(0) !important;
+    }
+
+    /* ─── Main Header Styling ─── */
+    .main-header {
+        background: linear-gradient(
+            135deg,
+            rgba(26, 34, 54, 0.4) 0%,
+            rgba(17, 24, 39, 0.6) 100/
+        );
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        padding: 2rem 2.5rem;
+        border-radius: var(--radius-lg);
+        margin-bottom: 2rem;
+        box-shadow: var(--shadow-lg);
+        backdrop-filter: blur(12px);
+    }
+    .main-header h1 {
+        background: linear-gradient(135deg, #F8FAFC 30%, #A855F7 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-size: 2.5rem !important;
+        font-weight: 800;
+        margin: 0 !important;
+    }
+    .main-header p {
+        color: #94A3B8;
+        font-size: 1.1rem;
+        margin-top: 0.5rem;
+    }
+
+    /* ─── Section Cards ─── */
+    .section-card {
+        background: rgba(26, 34, 54, 0.4);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: var(--radius-lg);
+        padding: 2rem;
+        margin-bottom: 1.5rem;
+        backdrop-filter: blur(10px);
+        box-shadow: var(--shadow-md);
     }
     .section-card h3 {
-        color: #1a237e;
-        font-size: 1.3rem;
+        color: #F8FAFC !important;
+        font-size: 1.4rem;
         font-weight: 600;
-        margin-bottom: 0.8rem;
-        padding-bottom: 0.5rem;
-        border-bottom: 2px solid #e8eaf6;
+        margin-top: 0 !important;
+        margin-bottom: 1.25rem !important;
+        padding-bottom: 0.6rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     }
 
-    /* Insight items */
+    /* ─── Insight Items ─── */
     .insight-item {
-        background: linear-gradient(135deg, #e8eaf6 0%, #f3e5f5 100%);
-        border-left: 4px solid #1a237e;
-        padding: 0.9rem 1.2rem;
-        border-radius: 0 8px 8px 0;
-        margin-bottom: 0.7rem;
-        font-size: 0.95rem;
-        line-height: 1.5;
+        background: rgba(255, 255, 255, 0.02);
+        border-left: 4px solid #A855F7;
+        padding: 1rem 1.4rem;
+        border-radius: 0 12px 12px 0;
+        margin-bottom: 0.75rem;
+        font-size: 1rem;
+        line-height: 1.6;
+        color: #F8FAFC;
+        border-top: 1px solid rgba(255, 255, 255, 0.02);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+        border-right: 1px solid rgba(255, 255, 255, 0.02);
     }
 
-    /* Stat cards */
+    /* ─── Stat Cards ─── */
     .stat-card {
-        background: linear-gradient(135deg, #e8eaf6 0%, #c5cae9 100%);
-        border-radius: 12px;
-        padding: 1.2rem;
+        background: linear-gradient(
+            135deg,
+            rgba(124, 58, 237, 0.1) 0%,
+            rgba(236, 72, 153, 0.05) 100/
+        );
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: var(--radius-md);
+        padding: 1.5rem;
         text-align: center;
-        box-shadow: 0 2px 8px rgba(26, 35, 126, 0.1);
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        box-shadow: var(--shadow-sm);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
     .stat-card:hover {
         transform: translateY(-2px);
-        box-shadow: 0 4px 16px rgba(26, 35, 126, 0.15);
+        box-shadow: 0 8px 20px rgba(124, 58, 237, 0.15);
+        border-color: rgba(168, 85, 247, 0.3);
     }
     .stat-label {
-        color: #1a237e;
+        color: #94A3B8;
         font-size: 0.85rem;
         font-weight: 600;
         text-transform: uppercase;
-        letter-spacing: 0.04em;
-        margin-bottom: 0.3rem;
+        letter-spacing: 0.06em;
+        margin-bottom: 0.5rem;
     }
     .stat-value {
-        color: #0d47a1;
-        font-size: 1.6rem;
+        color: #F8FAFC;
+        background: linear-gradient(135deg, #A855F7 0%, #EC4899 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-size: 1.85rem;
         font-weight: 700;
     }
 
-    /* Reference cards */
+    /* ─── Reference Cards ─── */
     .ref-card {
-        background: #fafafa;
-        border: 1px solid #e0e0e0;
-        border-radius: 10px;
-        padding: 1rem 1.3rem;
-        margin-bottom: 0.7rem;
-        transition: border-color 0.2s ease;
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: var(--radius-md);
+        padding: 1.25rem 1.5rem;
+        margin-bottom: 0.75rem;
+        transition: all 0.3s ease;
     }
     .ref-card:hover {
-        border-color: #1a237e;
+        border-color: #A855F7;
+        background: rgba(255, 255, 255, 0.03);
     }
     .ref-title {
-        color: #0d47a1;
+        color: #F8FAFC;
         font-weight: 600;
-        font-size: 1rem;
+        font-size: 1.1rem;
     }
     .ref-snippet {
-        color: #616161;
-        font-size: 0.9rem;
-        margin-top: 0.3rem;
-        line-height: 1.4;
+        color: #94A3B8;
+        font-size: 0.95rem;
+        margin-top: 0.4rem;
+        line-height: 1.5;
     }
     .ref-url {
-        color: #9e9e9e;
-        font-size: 0.8rem;
-        margin-top: 0.2rem;
+        color: #A855F7;
+        font-size: 0.82rem;
+        margin-top: 0.3rem;
         word-break: break-all;
     }
 
-    /* Download button area */
+    /* ─── Download Area ─── */
     .download-section {
-        background: linear-gradient(135deg, #e8eaf6 0%, #ede7f6 100%);
-        border-radius: 12px;
-        padding: 1.5rem;
-        margin-top: 1.5rem;
+        background: linear-gradient(
+            135deg,
+            rgba(26, 34, 54, 0.2) 0%,
+            rgba(17, 24, 39, 0.4) 100/
+        );
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: var(--radius-lg);
+        padding: 2rem;
+        margin-top: 2rem;
         text-align: center;
+        box-shadow: var(--shadow-md);
+    }
+    .download-section h3 {
+        color: #F8FAFC !important;
+        font-size: 1.4rem;
+        margin-top: 0 !important;
+        margin-bottom: 1.25rem !important;
     }
 
-    /* Warning banner */
+    /* ─── Warning Banner ─── */
     .limited-data-banner {
-        background: #fff3e0;
-        border-left: 4px solid #ff9800;
-        padding: 0.8rem 1.2rem;
-        border-radius: 0 8px 8px 0;
-        margin-bottom: 1rem;
-        color: #e65100;
+        background: rgba(245, 158, 11, 0.1);
+        border-left: 4px solid #F59E0B;
+        padding: 1rem 1.4rem;
+        border-radius: 0 12px 12px 0;
+        margin-bottom: 1.25rem;
+        color: #FBBF24;
         font-weight: 500;
+        font-size: 0.95rem;
+        border-top: 1px solid rgba(245, 158, 11, 0.15);
+        border-bottom: 1px solid rgba(245, 158, 11, 0.15);
+        border-right: 1px solid rgba(245, 158, 11, 0.15);
     }
 
-    /* Hide Streamlit default elements */
+    /* ─── Spinner Customization ─── */
+    div[data-testid="stSpinner"] > div {
+        border-top-color: #A855F7 !important;
+    }
+
+    /* ─── Hide Default Branding ─── */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
+    [data-testid="stHeader"] {background: transparent;}
     </style>
     """,
     unsafe_allow_html=True,
 )
-
 
 # ── Header ──────────────────────────────────────────────────────────
 st.markdown(
@@ -197,7 +337,6 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-
 # ── Session State Defaults ──────────────────────────────────────────
 if "report" not in st.session_state:
     st.session_state["report"] = None
@@ -207,7 +346,6 @@ if "pdf_path" not in st.session_state:
     st.session_state["pdf_path"] = None
 if "ppt_path" not in st.session_state:
     st.session_state["ppt_path"] = None
-
 
 # ── Topic Input & Generate Button ──────────────────────────────────
 col_input, col_btn = st.columns([4, 1])
@@ -229,14 +367,11 @@ with col_btn:
         type="primary",
     )
 
-
 # ── Input Validation & Generation ──────────────────────────────────
 if generate_clicked:
-    # T013: Input validation
     if not topic or not topic.strip():
         st.warning("⚠️ Please enter a research topic.")
     else:
-        # T023: Handle topic > 200 chars for display
         display_topic = topic[:200] + "…" if len(topic) > 200 else topic
 
         st.session_state["generating"] = True
@@ -244,7 +379,6 @@ if generate_clicked:
         st.session_state["pdf_path"] = None
         st.session_state["ppt_path"] = None
 
-        # T011: Generate report with spinner
         spinner_msg = (
             f"🔍 Researching **{display_topic}**… "
             "This may take up to 30 seconds."
@@ -258,7 +392,6 @@ if generate_clicked:
                 st.success("✅ Report generated successfully!")
 
             except OSError as exc:
-                # T014: API key missing
                 st.session_state["generating"] = False
                 st.error(
                     "🔑 API key not configured. Please configure "
@@ -269,7 +402,6 @@ if generate_clicked:
                 logger.debug(traceback.format_exc())
 
             except RuntimeError as exc:
-                # T014: API failure
                 st.session_state["generating"] = False
                 st.error(
                     "❌ Research generation failed. Please try again."
@@ -278,7 +410,6 @@ if generate_clicked:
                 logger.debug(traceback.format_exc())
 
             except ValueError as exc:
-                # T014: Schema validation failure
                 st.session_state["generating"] = False
                 st.error(
                     "⚠️ The AI returned an unexpected response format. "
@@ -288,14 +419,12 @@ if generate_clicked:
                 logger.debug(traceback.format_exc())
 
             except Exception as exc:
-                # Catch-all: no unhandled exceptions reach the user (SC-004)
                 st.session_state["generating"] = False
                 st.error(
                     "❌ An unexpected error occurred. Please try again."
                 )
                 logger.error("Unexpected error: %s", exc)
                 logger.debug(traceback.format_exc())
-
 
 # ── Report Display ──────────────────────────────────────────────────
 report: ResearchReport | None = st.session_state.get("report")
@@ -308,7 +437,7 @@ if report is not None:
         f"""
         <div class="section-card">
             <h3>📝 Executive Summary</h3>
-            <p style="color: #424242; line-height: 1.7; font-size: 1rem;">
+            <p style="color: #94A3B8; line-height: 1.75; font-size: 1.05rem;">
                 {report.executive_summary}
             </p>
         </div>
@@ -317,7 +446,6 @@ if report is not None:
     )
 
     # ── Key Insights ─────────────────────────────────────────────────
-    # Show warning if fewer than 3 insights (edge case)
     if len(report.key_insights) < 3:
         st.markdown(
             '<div class="limited-data-banner">'
@@ -343,7 +471,6 @@ if report is not None:
         unsafe_allow_html=True,
     )
 
-    # Show warning if fewer than 3 statistics (edge case)
     if len(report.statistics) < 3:
         st.markdown(
             '<div class="limited-data-banner">'
@@ -394,14 +521,13 @@ if report is not None:
     st.markdown("---")
     st.markdown(
         '<div class="download-section">'
-        "<h3>⬇️ Download Your Report</h3>"
+        "<h3>⬇_ Download Your Report</h3>"
         "</div>",
         unsafe_allow_html=True,
     )
 
     col_pdf, col_ppt = st.columns(2)
 
-    # T017: PDF Download
     with col_pdf:
         try:
             if st.session_state.get("pdf_path") is None:
@@ -423,7 +549,6 @@ if report is not None:
             st.error("Failed to generate PDF. Please try again.")
             logger.error("PDF generation error: %s", exc)
 
-    # T020: PPT Download
     with col_ppt:
         try:
             if st.session_state.get("ppt_path") is None:
@@ -446,7 +571,6 @@ if report is not None:
             logger.error("PPTX generation error: %s", exc)
 
 else:
-    # No report yet — show guidance
     st.markdown("---")
     st.info(
         "👆 Enter a research topic above and click **Generate Report** "
