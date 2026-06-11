@@ -29,21 +29,41 @@ load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 
 def _get_api_key() -> str:
-    """Retrieve the Gemini API key from environment variables.
+    """Retrieve the Gemini API key from various configuration sources.
+
+    Priority order:
+    1. Streamlit secrets (for deployment)
+    2. Environment variables (set directly in OS/container)
+    3. Local .env file (development only)
 
     Raises
     ------
-    EnvironmentError
-        If GEMINI_API_KEY is not set or is empty.
+    OSError
+        If GEMINI_API_KEY is not set or is set to a placeholder.
     """
+    # 1. Try Streamlit secrets
+    try:
+        import streamlit as st
+        if hasattr(st, "secrets") and "GEMINI_API_KEY" in st.secrets:
+            key = st.secrets["GEMINI_API_KEY"]
+            if isinstance(key, str):
+                key = key.strip()
+                if key and key != "your_gemini_api_key_here":
+                    logger.info("Loaded GEMINI_API_KEY from Streamlit secrets.")
+                    return key
+    except Exception as exc:
+        logger.debug("Failed to load API key from Streamlit secrets: %s", exc)
+
+    # 2. Try environment variables (populated by load_dotenv from .env if present)
     key = os.getenv("GEMINI_API_KEY", "").strip()
-    if not key or key == "your_gemini_api_key_here":
-        raise OSError(
-            "GEMINI_API_KEY is not configured. "
-            "Please set it in your .env file. "
-            "See .env.example for the expected format."
-        )
-    return key
+    if key and key != "your_gemini_api_key_here":
+        logger.info("Loaded GEMINI_API_KEY from environment variables.")
+        return key
+
+    raise OSError(
+        "GEMINI_API_KEY is not configured. Please configure it in "
+        "Streamlit Secrets, environment variables, or your .env file."
+    )
 
 
 _RESEARCH_PROMPT_TEMPLATE = """\

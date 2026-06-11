@@ -261,8 +261,9 @@ if generate_clicked:
                 # T014: API key missing
                 st.session_state["generating"] = False
                 st.error(
-                    "🔑 API key not configured. "
-                    "Please set `GEMINI_API_KEY` in your `.env` file."
+                    "🔑 API key not configured. Please configure "
+                    "`GEMINI_API_KEY` in Streamlit Secrets, environment "
+                    "variables, or your `.env` file."
                 )
                 logger.error("Environment error: %s", exc)
                 logger.debug(traceback.format_exc())
