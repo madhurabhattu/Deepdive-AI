@@ -146,7 +146,25 @@ __all__ = [
     "OLLAMA_BASE_URL",
     "OLLAMA_MODELS",
     "generate_research_report",
+    "is_ollama_available",
 ]
+
+
+def is_ollama_available() -> bool:
+    """Check if Ollama server is reachable on http://localhost:11434."""
+    import urllib.error
+    import urllib.request
+
+    try:
+        req = urllib.request.Request(
+            f"{OLLAMA_BASE_URL}/api/tags",
+            headers={"Accept": "application/json"},
+        )
+        with urllib.request.urlopen(req, timeout=2):
+            return True
+    except Exception:
+        return False
+
 
 # ── Gemini backend ───────────────────────────────────────────────────────────
 
@@ -409,10 +427,14 @@ def generate_research_report(
     RuntimeError
         On any backend failure.
     """
-    if provider == "gemini":
+    if provider in ("gemini_builtin", "gemini"):
+        resolved_byok = byok_key if provider == "gemini" else None
+        return _call_gemini(topic, report_lang, byok_key=resolved_byok)
+    if provider == "gemini_byok":
         return _call_gemini(topic, report_lang, byok_key=byok_key)
     if provider == "ollama":
         return _call_ollama(topic, model=ollama_model, report_lang=report_lang)
     raise ValueError(
-        f"Unknown AI provider '{provider}'. Use 'gemini' or 'ollama'."
+        f"Unknown AI provider '{provider}'. "
+        "Use 'gemini_builtin', 'gemini_byok', or 'ollama'."
     )
