@@ -339,9 +339,9 @@ def build_ppt(report: ResearchReport, lang: str = "en") -> str:
     _add_textbox(
         slide,
         Inches(8.9),
-        Inches(2.7),
+        Inches(2.6),
         Inches(3.3),
-        Inches(3.5),
+        Inches(3.8),
         get_text("why_it_matters_text", lang),
         font_size=15,
         color=TEXT_PRIMARY,
@@ -431,6 +431,10 @@ def build_ppt(report: ResearchReport, lang: str = "en") -> str:
     )
     tf = tx_box.text_frame
     tf.word_wrap = True
+    tf.margin_left = Inches(0.05)
+    tf.margin_right = Inches(0.05)
+    tf.margin_top = Inches(0.05)
+    tf.margin_bottom = Inches(0.05)
     for idx, insight in enumerate(report.key_insights[:4]):
         p = tf.paragraphs[0] if idx == 0 else tf.add_paragraph()
         p.text = f"▸  {insight}"
@@ -565,17 +569,33 @@ def build_ppt(report: ResearchReport, lang: str = "en") -> str:
         )
         tf = tx_box.text_frame
         tf.word_wrap = True
+        tf.margin_left = Inches(0.05)
+        tf.margin_right = Inches(0.05)
+        tf.margin_top = Inches(0.05)
+        tf.margin_bottom = Inches(0.05)
 
         for idx, it in enumerate(items[:3]):
-            p = tf.paragraphs[0] if idx == 0 else tf.add_paragraph()
-            p.text = (
-                f"\u25b8 {it.get('item', 'Item')}\n  {it.get('description', '')}"
-            )
-            p.font.name = _get_font_name(lang)
-            p.font.size = Pt(12)
-            p.font.color.rgb = TEXT_PRIMARY
-            p.space_after = Pt(10)
-            p.line_spacing = Pt(16)
+            if idx == 0 and len(tf.paragraphs[0].text) == 0:
+                p_title = tf.paragraphs[0]
+            else:
+                p_title = tf.add_paragraph()
+            p_title.text = f"▸  {it.get('item', 'Item')}"
+            p_title.font.name = _get_font_name(lang)
+            p_title.font.size = Pt(13)
+            p_title.font.bold = True
+            p_title.font.color.rgb = TEXT_PRIMARY
+            p_title.space_after = Pt(2)
+            p_title.line_spacing = Pt(16)
+
+            if it.get("description"):
+                p_desc = tf.add_paragraph()
+                p_desc.text = it.get("description", "")
+                p_desc.font.name = _get_font_name(lang)
+                p_desc.font.size = Pt(11)
+                p_desc.font.color.rgb = TEXT_SECONDARY
+                p_desc.left_indent = Inches(0.25)
+                p_desc.space_after = Pt(12)
+                p_desc.line_spacing = Pt(15)
 
     # ── Slide 6: Real-World Applications ─────────────────────────────
     slide = _create_slide_with_header(
@@ -658,6 +678,10 @@ def build_ppt(report: ResearchReport, lang: str = "en") -> str:
     )
     tf = tx_box.text_frame
     tf.word_wrap = True
+    tf.margin_left = Inches(0.05)
+    tf.margin_right = Inches(0.05)
+    tf.margin_top = Inches(0.05)
+    tf.margin_bottom = Inches(0.05)
     for idx, outlook in enumerate(report.future_outlook[:4]):
         p = tf.paragraphs[0] if idx == 0 else tf.add_paragraph()
         p.text = f"▸  {outlook}"
@@ -687,6 +711,10 @@ def build_ppt(report: ResearchReport, lang: str = "en") -> str:
     )
     ref_tf = ref_tx_box.text_frame
     ref_tf.word_wrap = True
+    ref_tf.margin_left = Inches(0.05)
+    ref_tf.margin_right = Inches(0.05)
+    ref_tf.margin_top = Inches(0.05)
+    ref_tf.margin_bottom = Inches(0.05)
     for idx, ref in enumerate(report.references[:4]):
         p_title = ref_tf.paragraphs[0] if idx == 0 else ref_tf.add_paragraph()
         p_title.text = f"{idx + 1}. {ref.get('title', 'Source')}"

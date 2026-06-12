@@ -139,8 +139,54 @@ RULES:
 
 # ── Ollama supported models ──────────────────────────────────────────────────
 
-OLLAMA_MODELS: list[str] = ["llama3", "mistral", "gemma", "qwen"]
-OLLAMA_BASE_URL: str = "http://localhost:11434"
+OLLAMA_MODELS: list[str] = [
+    "llama3",
+    "mistral",
+    "gemma",
+    "qwen",
+    "qwen2.5-coder:3b",
+]
+
+
+def _resolve_ollama_base_url() -> str:
+    """Resolve the Ollama base URL.
+
+    Resolves from environment variables (OLLAMA_BASE_URL or OLLAMA_HOST),
+    falling back to host.docker.internal if inside a Docker container,
+    and defaulting to http://localhost:11434.
+    """
+    env_url = os.getenv("OLLAMA_BASE_URL") or os.getenv("OLLAMA_HOST")
+    if env_url:
+        url = env_url.strip()
+        if not url.startswith(("http://", "https://")):
+            url = f"http://{url}"
+        return url
+
+    # Detect container environment
+    in_container = os.path.exists("/.dockerenv")
+    if not in_container and os.path.exists("/proc/1/cgroup"):
+        try:
+            with open("/proc/1/cgroup", encoding="utf-8") as f:
+                in_container = any(
+                    "docker" in line or "containerd" in line for line in f
+                )
+        except Exception:
+            pass
+
+    if in_container:
+        import socket
+
+        try:
+            # Quick DNS resolution check for host.docker.internal
+            socket.gethostbyname("host.docker.internal")
+            return "http://host.docker.internal:11434"
+        except socket.gaierror:
+            pass
+
+    return "http://localhost:11434"
+
+
+OLLAMA_BASE_URL: str = _resolve_ollama_base_url()
 
 __all__ = [
     "OLLAMA_BASE_URL",
@@ -151,7 +197,7 @@ __all__ = [
 
 
 def is_ollama_available() -> bool:
-    """Check if Ollama server is reachable on http://localhost:11434."""
+    """Check if Ollama server is reachable on OLLAMA_BASE_URL."""
     import urllib.error
     import urllib.request
 
@@ -162,7 +208,10 @@ def is_ollama_available() -> bool:
         )
         with urllib.request.urlopen(req, timeout=2):
             return True
-    except Exception:
+    except Exception as exc:
+        logger.warning(
+            "Ollama server at %s not reachable: %s", OLLAMA_BASE_URL, exc
+        )
         return False
 
 
@@ -348,26 +397,122 @@ def _call_ollama(
     _check_ollama_available()
 
     prompt = _build_prompt(topic, report_lang)
+    prompt += (
+        "\nCRITICAL RULES FOR LOCAL MODELS:\n"
+        "- Return valid JSON only.\n"
+        "- Do not include markdown.\n"
+        "- Do not include explanations.\n"
+        "- Populate all fields.\n"
+        "- Provide:\n"
+        "  - executive_summary\n"
+        "  - core_concepts (minimum 5)\n"
+        "  - key_insights (minimum 5)\n"
+        "  - benefits_challenges_risks\n"
+        "  - real_world_applications\n"
+        "  - future_outlook\n"
+        "  - statistics\n"
+        "  - references"
+    )
+
+    # Task 1: Log the exact prompt being sent to Ollama
+    logger.info("PROMPT SENT TO OLLAMA")
+    logger.info(prompt)
+
+    # Store prompt in session state for Streamlit diagnostics
+    try:
+        import streamlit as st
+        st.session_state["prompt_sent"] = prompt
+    except ImportError:
+        pass
+
     payload: dict[str, Any] = {
         "model": model,
-        "prompt": prompt,
+        "messages": [
+            {
+                "role": "system",
+                "content": (
+                    "You are a professional research analyst. You must output "
+                    "a JSON object containing all the requested keys. Every "
+                    "key must be fully populated with real research content. "
+                    "Do not output placeholders."
+                ),
+            },
+            {
+                "role": "user",
+                "content": prompt,
+            },
+        ],
         "stream": False,
         "format": "json",
-        "options": {"temperature": 0.7},
+        "options": {
+            "temperature": 0.5,
+            "num_predict": 4096,
+            "num_ctx": 8192,
+        },
     }
     data = json.dumps(payload).encode("utf-8")
 
     try:
         req = urllib.request.Request(
-            f"{OLLAMA_BASE_URL}/api/generate",
+            f"{OLLAMA_BASE_URL}/api/chat",
             data=data,
             headers={"Content-Type": "application/json"},
             method="POST",
         )
         with urllib.request.urlopen(req, timeout=120) as resp:
-            body = json.loads(resp.read().decode("utf-8"))
+            raw_data = resp.read().decode("utf-8")
 
-        raw_text: str = body.get("response", "").strip()
+        # Task 4: Save the raw output to disk
+        try:
+            debug_path = (
+                Path(__file__).resolve().parent.parent
+                / "debug_ollama_response.txt"
+            )
+            with open(debug_path, "w", encoding="utf-8") as f:
+                f.write(raw_data)
+        except Exception as file_exc:
+            logger.error("Failed to write debug_ollama_response.txt: %s", file_exc)
+
+        # Task 1: Display raw Ollama output
+        logger.info("=" * 80)
+        logger.info("RAW OLLAMA RESPONSE")
+        logger.info("=" * 80)
+        logger.info(raw_data)
+        logger.info("=" * 80)
+
+        # Store in streamlit session state for diagnostics
+        try:
+            import streamlit as st
+            st.session_state["raw_ollama_response"] = raw_data
+        except ImportError:
+            pass
+
+        try:
+            body = json.loads(raw_data)
+        except Exception:
+            body = raw_data
+
+        # Task 3: Log complete returned object and verify field extraction
+        logger.info("Ollama parsed body object: %s", body)
+
+        # Support Format A ("response") & Format B ("message" -> "content")
+        content = None
+        if isinstance(body, dict):
+            if "response" in body:
+                content = body["response"]
+            elif "message" in body and isinstance(body["message"], dict):
+                content = body["message"].get("content")
+
+        # Fallback handling if not in expected structure
+        if not content:
+            if body:
+                content = str(body)
+            else:
+                raise ValueError(
+                    f"Unable to extract text from Ollama response. Response={body}"
+                )
+
+        raw_text: str = content.strip()
         logger.info(
             "Ollama (%s) returned %d chars for topic '%s' [lang=%s]",
             model,
@@ -375,16 +520,37 @@ def _call_ollama(
             topic,
             report_lang,
         )
-        json.loads(raw_text)  # sanity check
-        return raw_text
+
+        # JSON Repair Layer
+        raw_text = raw_text.replace("```json", "")
+        raw_text = raw_text.replace("```", "")
+        json_start = raw_text.find("{")
+        json_end = raw_text.rfind("}")
+        if json_start >= 0 and json_end >= 0:
+            raw_text = raw_text[json_start : json_end + 1]
+
+        # Store cleaned response in session state
+        try:
+            import streamlit as st
+            st.session_state["cleaned_ollama_response"] = raw_text
+        except ImportError:
+            pass
+
+        try:
+            json.loads(raw_text)
+            return raw_text
+        except json.JSONDecodeError as exc:
+            raise ValueError(
+                f"AI response content is not valid JSON: {exc}. Content: {raw_text}"
+            ) from exc
 
     except urllib.error.URLError as exc:
         logger.error("Ollama request failed: %s", exc)
         raise RuntimeError(
             f"Ollama request failed. Is it running? (Detail: {exc})"
         ) from exc
-    except (KeyError, json.JSONDecodeError) as exc:
-        logger.error("Ollama returned invalid JSON: %s", exc)
+    except (KeyError, ValueError, json.JSONDecodeError) as exc:
+        logger.error("Ollama returned invalid response format: %s", exc)
         raise RuntimeError(
             f"Ollama returned an unexpected response format. (Detail: {exc})"
         ) from exc

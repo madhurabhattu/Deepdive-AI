@@ -12,8 +12,9 @@ from pathlib import Path
 
 import streamlit as st
 
-from utils.ai_client import OLLAMA_MODELS, is_ollama_available
+from utils.ai_client import OLLAMA_BASE_URL, OLLAMA_MODELS, is_ollama_available
 from utils.localization import LANGUAGES, detect_browser_language, get_text
+from utils.reviews_manager import render_sidebar_review_form
 
 # ── Logging Configuration ───────────────────────────────────────────
 logging.basicConfig(
@@ -109,6 +110,12 @@ st.markdown(
     }
     [data-testid="stSidebar"] * {
         color: #94A3B8 !important;
+    }
+    /* Uppercase the 'app' page link in sidebar navigation */
+    div[data-testid="stSidebarNav"] ul li:first-child a p,
+    div[data-testid="stSidebarNav"] a[href="/"] p,
+    div[data-testid="stSidebarNav"] a[href=""] p {
+        text-transform: uppercase !important;
     }
     [data-testid="stSidebar"] h3 {
         color: #F8FAFC !important;
@@ -420,7 +427,8 @@ with st.sidebar:
         if not is_ollama_available():
             st.warning(
                 "🖥️ **Ollama not reachable.** "
-                "Make sure Ollama is installed and running (`ollama serve`)."
+                "Make sure Ollama is installed and running at "
+                f"`{OLLAMA_BASE_URL}` (`ollama serve`)."
             )
         else:
             st.markdown(
@@ -448,6 +456,8 @@ with st.sidebar:
         "[Gemini AI](https://ai.google.dev) / "
         "[Ollama](https://ollama.com)",
     )
+    st.divider()
+    render_sidebar_review_form()
 
 # ── Top Navigation / Language Switcher Row ──────────────────────────
 col_empty, col_lang_switch = st.columns([5, 1])
