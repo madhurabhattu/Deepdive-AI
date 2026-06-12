@@ -19,11 +19,17 @@ import traceback
 
 import streamlit as st
 
-from utils.ai_client import OLLAMA_MODELS, generate_research_report, is_ollama_available
+from utils.ai_client import (
+    OLLAMA_BASE_URL,
+    OLLAMA_MODELS,
+    generate_research_report,
+    is_ollama_available,
+)
 from utils.localization import LANGUAGES, detect_browser_language, get_text
 from utils.pdf_generator import build_pdf
 from utils.ppt_generator import build_ppt
 from utils.report_schema import ResearchReport, parse_report
+from utils.reviews_manager import load_reviews, render_sidebar_review_form
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +59,18 @@ if "byok_api_key" not in st.session_state:
     st.session_state["byok_api_key"] = ""
 if "ollama_model" not in st.session_state:
     st.session_state["ollama_model"] = OLLAMA_MODELS[0]
+if "raw_ollama_response" not in st.session_state:
+    st.session_state["raw_ollama_response"] = None
+if "cleaned_ollama_response" not in st.session_state:
+    st.session_state["cleaned_ollama_response"] = None
+if "parsed_json" not in st.session_state:
+    st.session_state["parsed_json"] = None
+if "validation_results" not in st.session_state:
+    st.session_state["validation_results"] = None
+if "prompt_sent" not in st.session_state:
+    st.session_state["prompt_sent"] = None
+if "missing_fields" not in st.session_state:
+    st.session_state["missing_fields"] = None
 
 lang = st.session_state["ui_lang"]
 report_lang = st.session_state["report_lang"]
@@ -123,6 +141,12 @@ st.markdown(
     }
     [data-testid="stSidebar"] * {
         color: #94A3B8 !important;
+    }
+    /* Uppercase the 'app' page link in sidebar navigation */
+    div[data-testid="stSidebarNav"] ul li:first-child a p,
+    div[data-testid="stSidebarNav"] a[href="/"] p,
+    div[data-testid="stSidebarNav"] a[href=""] p {
+        text-transform: uppercase !important;
     }
     [data-testid="stSidebar"] h3 {
         color: #F8FAFC !important;
@@ -347,6 +371,53 @@ st.markdown(
         border-top-color: #A855F7 !important;
     }
 
+    /* ─── Review Card Styling ─── */
+    .reviews-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 1.25rem;
+        margin-top: 1.5rem;
+    }
+    .review-card {
+        background: rgba(26, 34, 54, 0.3) !important;
+        border: 1px solid rgba(255, 255, 255, 0.06) !important;
+        border-radius: var(--radius-md) !important;
+        padding: 1.5rem !important;
+        backdrop-filter: blur(8px) !important;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        box-shadow: var(--shadow-sm) !important;
+    }
+    .review-card:hover {
+        transform: translateY(-4px) !important;
+        background: rgba(26, 34, 54, 0.5) !important;
+        border-color: rgba(168, 85, 247, 0.35) !important;
+        box-shadow: 0 10px 25px rgba(124, 58, 237, 0.08) !important;
+    }
+    .review-stars {
+        color: #A855F7;
+        font-size: 1.1rem;
+        margin-bottom: 0.5rem;
+        letter-spacing: 1px;
+    }
+    .review-author {
+        color: #F8FAFC;
+        font-weight: 600;
+        font-size: 1.05rem;
+        margin-bottom: 0.5rem;
+    }
+    .review-comment {
+        color: #F8FAFC;
+        font-style: italic;
+        font-size: 0.95rem;
+        line-height: 1.5;
+        margin-top: 0.5rem;
+        margin-bottom: 0.75rem;
+    }
+    .review-date {
+        color: #94A3B8;
+        font-size: 0.82rem;
+    }
+
     /* ─── Hide Default Branding ─── */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
@@ -447,7 +518,8 @@ with st.sidebar:
         if not is_ollama_available():
             st.warning(
                 "🖥️ **Ollama not reachable.** "
-                "Make sure Ollama is installed and running (`ollama serve`)."
+                "Make sure Ollama is installed and running at "
+                f"`{OLLAMA_BASE_URL}` (`ollama serve`)."
             )
         else:
             st.markdown(
@@ -475,6 +547,8 @@ with st.sidebar:
         "[Gemini AI](https://ai.google.dev) / "
         "[Ollama](https://ollama.com)",
     )
+    st.divider()
+    render_sidebar_review_form()
 
 # ── Header & Language Switchers Row ──────────────────────────────────
 col_title, col_ui_lang, col_rep_lang = st.columns([4, 1, 1])
@@ -554,6 +628,16 @@ if generate_clicked:
     else:
         display_topic = topic[:200] + "…" if len(topic) > 200 else topic
 
+        # Dynamic reload of helper modules to bypass Streamlit import caching
+        import importlib
+
+        import utils.ai_client
+        import utils.report_schema
+        importlib.reload(utils.ai_client)
+        importlib.reload(utils.report_schema)
+        from utils.ai_client import generate_research_report
+        from utils.report_schema import parse_report
+
         st.session_state["generating"] = True
         st.session_state["report"] = None
         st.session_state["pdf_path"] = None
@@ -571,40 +655,60 @@ if generate_clicked:
                     byok_key=st.session_state["byok_api_key"] or None,
                     ollama_model=st.session_state["ollama_model"],
                 )
-                parsed_report = parse_report(raw_json, topic=topic.strip())
+                is_ollama = (st.session_state.get("ai_provider") == "ollama")
+                st.session_state["raw_ollama_response"] = raw_json
+                cleaned_or_raw = (
+                    st.session_state.get("cleaned_ollama_response")
+                    or raw_json
+                )
+                st.session_state["cleaned_ollama_response"] = cleaned_or_raw
+                try:
+                    import json
+                    st.session_state["parsed_json"] = json.loads(raw_json)
+                except Exception:
+                    st.session_state["parsed_json"] = None
+
+                parsed_report = parse_report(
+                    raw_json, topic=topic.strip(), strict=not is_ollama
+                )
                 st.session_state["report"] = parsed_report
+                st.session_state["validation_results"] = "Success"
                 st.session_state["generating"] = False
                 st.success(get_text("success_msg", lang))
 
             except OSError as exc:
                 st.session_state["generating"] = False
-                st.error(get_text("err_api_key", lang))
+                st.session_state["validation_results"] = f"Failed (OS/API Key): {exc}"
+                st.error(f"❌ **Environment/API Key Error**: {exc}")
                 logger.error("Environment error: %s", exc)
                 logger.debug(traceback.format_exc())
 
             except RuntimeError as exc:
                 st.session_state["generating"] = False
+                st.session_state["validation_results"] = f"Failed (Runtime): {exc}"
                 err_detail = str(exc)
-                if "Ollama" in err_detail or "localhost:11434" in err_detail:
+                if "is not running" in err_detail or "request failed" in err_detail:
                     st.error(
                         "🖥️ **Ollama not reachable.** "
-                        "Make sure Ollama is installed and running: "
-                        "`ollama serve`"
+                        "Make sure Ollama is installed and running at "
+                        f"`{OLLAMA_BASE_URL}`: `ollama serve`"
                     )
                 else:
-                    st.error(get_text("err_generation", lang))
+                    st.error(f"❌ **Ollama Error**: {exc}")
                 logger.error("API error: %s", exc)
                 logger.debug(traceback.format_exc())
 
             except ValueError as exc:
                 st.session_state["generating"] = False
-                st.error(get_text("err_schema", lang))
+                st.session_state["validation_results"] = f"Failed (Validation): {exc}"
+                st.error(f"⚠️ **Response Format Error**: {exc}")
                 logger.error("Schema / model error: %s", exc)
                 logger.debug(traceback.format_exc())
 
             except Exception as exc:
                 st.session_state["generating"] = False
-                st.error(get_text("err_unexpected", lang))
+                st.session_state["validation_results"] = f"Failed (Unexpected): {exc}"
+                st.error(f"❌ **Unexpected Error**: {exc}")
                 logger.error("Unexpected error: %s", exc)
                 logger.debug(traceback.format_exc())
 
@@ -613,6 +717,11 @@ report: ResearchReport | None = st.session_state.get("report")
 
 if report is not None:
     st.divider()
+
+    # Render any validation/auto-correction warnings if present (Task 6)
+    if report.warnings:
+        for warning in report.warnings:
+            st.warning(f"⚠️ {warning}")
 
     # ── Executive Summary ────────────────────────────────────────────
     st.markdown(
@@ -697,22 +806,29 @@ if report is not None:
             unsafe_allow_html=True,
         )
 
-    # Render stat cards in columns (up to 3 per row)
-    stats = report.statistics
-    for row_start in range(0, len(stats), 3):
-        row_stats = stats[row_start : row_start + 3]
-        cols = st.columns(len(row_stats))
-        for col, stat in zip(cols, row_stats, strict=True):
-            with col:
-                st.markdown(
-                    f"""
-                    <div class="stat-card">
-                        <div class="stat-label">{stat.get("label", "")}</div>
-                        <div class="stat-value">{stat.get("value", "")}</div>
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
+    # Render stat cards in columns (up to 3 per row) (Task 5)
+    stats = [
+        s for s in report.statistics
+        if isinstance(s, dict)
+        and s.get("label")
+        and s.get("value")
+        and s.get("value") != "N/A"
+    ]
+    if stats:
+        for row_start in range(0, len(stats), 3):
+            row_stats = stats[row_start : row_start + 3]
+            cols = st.columns(len(row_stats))
+            for col, stat in zip(cols, row_stats, strict=True):
+                with col:
+                    st.markdown(
+                        f"""
+                        <div class="stat-card">
+                            <div class="stat-label">{stat.get("label", "")}</div>
+                            <div class="stat-value">{stat.get("value", "")}</div>
+                        </div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
 
     # ── Benefits, Challenges & Risks ─────────────────────────────────
     st.markdown(
@@ -912,8 +1028,8 @@ if report is not None:
                     type="primary",
                 )
         except Exception as exc:
-            st.error(get_text("pdf_err", lang))
-            logger.error("PDF generation error: %s", exc)
+            logger.exception("PDF generation error: %s", exc)
+            st.error(f"❌ **PDF Error**: {exc}")
 
     with col_ppt:
         try:
@@ -933,8 +1049,43 @@ if report is not None:
                     type="primary",
                 )
         except Exception as exc:
-            st.error(get_text("ppt_err", lang))
-            logger.error("PPTX generation error: %s", exc)
+            logger.exception("PPTX generation error: %s", exc)
+            st.error(f"❌ **PPT Error**: {exc}")
+
+        # ── Debug diagnostics expander ──────────────────────────────────
+        # Task 8: Add parser diagnostics expander
+        with st.expander("🛠️ Debug Diagnostics"):
+            st.markdown("### Raw AI Response")
+            raw_resp = st.session_state.get("raw_ollama_response") or "N/A"
+            st.code(raw_resp, language="json")
+
+            st.markdown("### Parsed JSON")
+            try:
+                parsed_dict = {
+                    "executive_summary": report.executive_summary,
+                    "background_context": report.background_context,
+                    "core_concepts": report.core_concepts,
+                    "key_insights": report.key_insights,
+                    "benefits_challenges_risks": (
+                        report.benefits_challenges_risks
+                    ),
+                    "real_world_applications": (
+                        report.real_world_applications
+                    ),
+                    "future_outlook": report.future_outlook,
+                    "statistics": report.statistics,
+                    "references": report.references,
+                }
+                st.json(parsed_dict)
+            except Exception as e:
+                st.error(f"Error displaying parsed JSON: {e}")
+
+            st.markdown("### Validation Warnings / Dynamic Corrections")
+            if report.warnings:
+                for w in report.warnings:
+                    st.write(f"- {w}")
+            else:
+                st.write("No warnings. Perfect schema match!")
 
 else:
     st.markdown("---")
@@ -956,3 +1107,194 @@ else:
             "👆 పైన ఒక పరిశోధనా అంశాన్ని నమోదు చేసి, ప్రారంభించడానికి **నివేదికను సృష్టించండి** క్లిక్ చేయండి."
         )
     st.info(hint_text)
+
+# ── Reviews Dashboard Section ────────────────────────────────────
+st.markdown("---")
+st.markdown("## 🌟 Community Reviews")
+
+reviews = load_reviews()
+if not reviews:
+    st.markdown(
+        """
+        <div style="padding: 2rem; text-align: center; background: """
+        """rgba(26, 34, 54, 0.3); border-radius: var(--radius-md); """
+        """border: 1px solid rgba(255, 255, 255, 0.06);">
+            <h3 style="margin: 0; color: #F8FAFC;">🌟 No reviews yet</h3>
+            <p style="color: #94A3B8; margin-top: 0.5rem; """
+            """margin-bottom: 0;">Be the first person to review DeepDive AI.</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+else:
+    # Load calculations
+    from utils.reviews_manager import (
+        calculate_average_rating,
+        get_rating_distribution,
+    )
+
+    average_rating = calculate_average_rating(reviews)
+    total_reviews = len(reviews)
+    distribution = get_rating_distribution(reviews)
+
+    # 1. Rating Summary Header columns
+    col_summary, col_analytics = st.columns([1, 2])
+    with col_summary:
+        filled_stars = "★" * round(average_rating)
+        empty_stars = "☆" * (5 - round(average_rating))
+        st.markdown(
+            f"""
+            <div style="text-align: center; padding: 1.5rem; height: 100%; """
+            """background: rgba(26, 34, 54, 0.3); border-radius: """
+            """var(--radius-md); border: 1px solid rgba(255, 255, 255, 0.06); """
+            """display: flex; flex-direction: column; justify-content: """
+            """center; align-items: center;">
+                <div style="font-size: 3.2rem; font-weight: 800; """
+                f"""color: #F8FAFC; line-height: 1;">{average_rating}</div>
+                <div style="color: #A855F7; font-size: 1.6rem; margin: """
+                """0.5rem 0; letter-spacing: 2px;">"""
+                f"""{filled_stars}{empty_stars}</div>
+                <div style="color: #94A3B8; font-size: 0.95rem;">"""
+                f"""Based on {total_reviews} reviews</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    with col_analytics:
+        # Star distribution progress bars
+        for star in [5, 4, 3, 2, 1]:
+            count = distribution.get(star, 0)
+            pct = (count / total_reviews * 100) if total_reviews > 0 else 0
+            star_label = "★" * star + "☆" * (5 - star)
+            st.markdown(
+                f"""
+                <div style="display: flex; align-items: center; """
+                """margin-bottom: 0.5rem;">
+                    <div style="width: 85px; color: #A855F7; """
+                    """font-family: monospace; """
+                    f"""font-size: 0.9rem; letter-spacing: 1px;">{star_label}</div>
+                    <div style="flex-grow: 1; height: 8px; background: """
+                    """rgba(255, 255, 255, 0.05); border-radius: 4px; """
+                    """margin: 0 12px; overflow: hidden; position: relative;">
+                        <div style="width: {pct}%; height: 100%; background: """
+                        """linear-gradient(90deg, #7C3AED, #EC4899); """
+                        """border-radius: 4px;"></div>
+                    </div>
+                    <div style="width: 35px; text-align: right; color: #94A3B8; """
+                    f"""font-size: 0.85rem; font-weight: 600;">{count}</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # 2. Sorting select box
+    col_sort_empty, col_sort_select = st.columns([4, 1])
+    with col_sort_select:
+        sort_option = st.selectbox(
+            "Sort reviews:",
+            options=["Newest", "Highest Rating", "Lowest Rating"],
+            key="reviews_dashboard_sort",
+            label_visibility="collapsed",
+        )
+
+    # Sort the reviews list
+    from datetime import datetime
+
+    def parse_ts(ts_str: str) -> float:
+        try:
+            return datetime.strptime(ts_str, "%Y-%m-%d %H:%M").timestamp()
+        except Exception:
+            return 0.0
+
+    if sort_option == "Newest":
+        sorted_reviews = sorted(
+            reviews, key=lambda x: parse_ts(x.timestamp), reverse=True
+        )
+    elif sort_option == "Highest Rating":
+        sorted_reviews = sorted(
+            reviews,
+            key=lambda x: (x.rating, parse_ts(x.timestamp)),
+            reverse=True,
+        )
+    else:
+        sorted_reviews = sorted(
+            reviews, key=lambda x: (x.rating, -parse_ts(x.timestamp))
+        )
+
+    # 3. Format Date function helper
+    def format_date(ts_str: str) -> str:
+        try:
+            dt = datetime.strptime(ts_str, "%Y-%m-%d %H:%M")
+            return dt.strftime("%d %b %Y")
+        except Exception:
+            return ts_str
+
+    # 4. Render Reviews Cards Grid
+    st.markdown('<div class="reviews-container">', unsafe_allow_html=True)
+    for rev in sorted_reviews:
+        r_stars_filled = "★" * rev.rating
+        r_stars_empty = "☆" * (5 - rev.rating)
+        comment_html = ""
+        if rev.comment:
+            comment_html = f'<div class="review-comment">"{rev.comment}"</div>'
+
+        formatted_date = format_date(rev.timestamp)
+
+        st.markdown(
+            f"""
+            <div class="review-card">
+                <div class="review-stars">{r_stars_filled}{r_stars_empty}</div>
+                <div class="review-author">{rev.name}</div>
+                {comment_html}
+                <div class="review-date">{formatted_date}</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+    st.markdown("</div>", unsafe_allow_html=True)
+
+# ── Temporary Streamlit Debug Expanders (Task 1 & Task 2) ───────────
+if (
+    st.session_state.get("raw_ollama_response") is not None
+    or st.session_state.get("cleaned_ollama_response") is not None
+    or st.session_state.get("parsed_json") is not None
+    or st.session_state.get("validation_results") is not None
+):
+    st.markdown("---")
+    st.markdown("### 🛠️ Ollama Diagnostic Logs")
+
+    # Task 6: Add prompt diagnostics expander
+    with st.expander("DEBUG - PROMPT"):
+        st.text(st.session_state.get("prompt_sent") or "N/A")
+
+    # Task 1 debug expander
+    with st.expander("DEBUG - RAW MODEL OUTPUT"):
+        st.code(str(st.session_state.get("raw_ollama_response")))
+
+    # Task 2 debug expander
+    with st.expander("DEBUG - PARSING"):
+        st.write("RAW:", st.session_state.get("raw_ollama_response"))
+        st.write("CLEANED:", st.session_state.get("cleaned_ollama_response"))
+
+        parsed_obj = st.session_state.get("parsed_json")
+        st.write("PARSED JSON KEYS:")
+        st.write(list(parsed_obj.keys()) if isinstance(parsed_obj, dict) else [])
+
+        st.write("PARSED JSON:")
+        st.json(parsed_obj or {})
+
+        from utils.report_schema import REQUIRED_FIELDS
+        st.write("EXPECTED SCHEMA:")
+        st.json(REQUIRED_FIELDS)
+
+        missing_fields = st.session_state.get("missing_fields") or []
+        st.write("MISSING FIELDS:")
+        if missing_fields:
+            st.error(f"Missing fields: {missing_fields}")
+        else:
+            st.write([])
+
+        st.write("VALIDATION RESULTS:", st.session_state.get("validation_results"))

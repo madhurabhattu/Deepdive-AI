@@ -1,0 +1,38 @@
+[
+  {
+    "name": "Madhura",
+    "rating": 5,
+    "comment": "Very useful research tool.",
+    "timestamp": "2026-06-12 10:30"
+  },
+  {
+    "name": "Amit",
+    "rating": 5,
+    "comment": "Outstanding report layout, saved me hours of presentation prep.",
+    "timestamp": "2026-06-12 11:15"
+  },
+  {
+    "name": "Sarah Connor",
+    "rating": 4,
+    "comment": "Local Ollama generation is extremely fast. Highly recommended.",
+    "timestamp": "2026-06-12 12:45"
+  },
+  {
+    "name": "Aditi Kakade",
+    "rating": 4,
+    "comment": "",
+    "timestamp": "2026-06-12 13:40"
+  },
+  {
+    "name": "Siddharth",
+    "rating": 5,
+    "comment": "",
+    "timestamp": "2026-06-12 13:41"
+  },
+  {
+    "name": "Madhura",
+    "rating": 5,
+    "comment": "",
+    "timestamp": "2026-06-12 14:46"
+  }
+]

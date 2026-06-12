@@ -51,6 +51,37 @@ def sanitise_filename(topic: str) -> str:
     return clean[:80] if len(clean) > 80 else clean
 
 
+def xml_escape(text: str) -> str:
+    """Escape XML special characters while preserving allowed formatting tags.
+
+    Allowed tags: <b>, </b>, <i>, </i>, <u>, </u>, <font...>, </font>, <a...>, </a>
+    """
+    if not isinstance(text, str):
+        return str(text)
+
+    # Escape raw ampersands that aren't already part of an XML entity
+    text = re.sub(r"&(?!#[0-9]+;|[a-zA-Z0-9]+;)", "&amp;", text)
+
+    # Mark allowed styling/link tags
+    allowed_tags = r"(/?b|/?i|/?u|/?font|a\s+[^>]*|/a)"
+    temp_start = "___TAG_START___"
+    temp_end = "___TAG_END___"
+
+    def mask_tag(match: re.Match) -> str:
+        return f"{temp_start}{match.group(1)}{temp_end}"
+
+    # Replace <tag> with masked placeholders
+    tag_pattern = rf"<({allowed_tags})>"
+    masked = re.sub(tag_pattern, mask_tag, text, flags=re.IGNORECASE)
+
+    # Escape all other '<' and '>'
+    escaped = masked.replace("<", "&lt;").replace(">", "&gt;")
+
+    # Restore the allowed styling tags
+    restored = escaped.replace(temp_start, "<").replace(temp_end, ">")
+    return restored
+
+
 def _get_pdf_font_name(lang: str) -> str:
     """Return appropriate font name based on language selection."""
     if lang in ["hi", "mr"]:
@@ -204,7 +235,7 @@ def build_pdf(report: ResearchReport, lang: str = "en") -> str:
     story.append(Spacer(1, 2 * inch))
     story.append(Paragraph(get_text("app_title", lang), styles["cover_subtitle"]))
     story.append(Spacer(1, 0.3 * inch))
-    story.append(Paragraph(report.topic, styles["cover_title"]))
+    story.append(Paragraph(xml_escape(report.topic), styles["cover_title"]))
     story.append(Spacer(1, 0.3 * inch))
     story.append(Paragraph(get_text("app_tagline", lang), styles["cover_subtitle"]))
     story.append(
@@ -220,20 +251,20 @@ def build_pdf(report: ResearchReport, lang: str = "en") -> str:
         Paragraph(get_text("feat_summary_title", lang), styles["section_heading"])
     )
     story.append(Spacer(1, 4 * mm))
-    story.append(Paragraph(report.executive_summary, styles["body"]))
+    story.append(Paragraph(xml_escape(report.executive_summary), styles["body"]))
     story.append(Spacer(1, 6 * mm))
 
     story.append(Paragraph(get_text("sec_background", lang), styles["section_heading"]))
     story.append(Spacer(1, 4 * mm))
-    story.append(Paragraph(report.background_context, styles["body"]))
+    story.append(Paragraph(xml_escape(report.background_context), styles["body"]))
     story.append(PageBreak())
 
     # ── Core Concepts ────────────────────────────────────────────────
     story.append(Paragraph(get_text("sec_concepts", lang), styles["section_heading"]))
     story.append(Spacer(1, 4 * mm))
     for concept in report.core_concepts:
-        term = concept.get("term", "")
-        definition = concept.get("definition", "")
+        term = xml_escape(concept.get("term", ""))
+        definition = xml_escape(concept.get("definition", ""))
         story.append(Paragraph(f"<b>•  {term}</b>: {definition}", styles["bullet"]))
         story.append(Spacer(1, 2 * mm))
     story.append(PageBreak())
@@ -244,7 +275,9 @@ def build_pdf(report: ResearchReport, lang: str = "en") -> str:
     )
     story.append(Spacer(1, 4 * mm))
     for idx, insight in enumerate(report.key_insights, start=1):
-        story.append(Paragraph(f"<b>{idx}.</b>  {insight}", styles["bullet"]))
+        story.append(
+            Paragraph(f"<b>{idx}.</b>  {xml_escape(insight)}", styles["bullet"])
+        )
     story.append(PageBreak())
 
     # ── Statistics ───────────────────────────────────────────────────
@@ -298,9 +331,9 @@ def build_pdf(report: ResearchReport, lang: str = "en") -> str:
     story.append(Paragraph(get_text("sec_benefits", lang), styles["section_heading"]))
     story.append(Spacer(1, 4 * mm))
     for it in report.benefits_challenges_risks:
-        item_name = it.get("item", "")
-        item_type = it.get("type", "").upper()
-        description = it.get("description", "")
+        item_name = xml_escape(it.get("item", ""))
+        item_type = xml_escape(it.get("type", "").upper())
+        description = xml_escape(it.get("description", ""))
 
         color_hex = "#1b237e"
         if item_type == "BENEFIT":
@@ -327,8 +360,8 @@ def build_pdf(report: ResearchReport, lang: str = "en") -> str:
     story.append(Paragraph(get_text("sec_apps", lang), styles["section_heading"]))
     story.append(Spacer(1, 4 * mm))
     for app in report.real_world_applications:
-        application = app.get("application", "")
-        description = app.get("description", "")
+        application = xml_escape(app.get("application", ""))
+        description = xml_escape(app.get("description", ""))
         story.append(
             Paragraph(f"<b>•  {application}</b>: {description}", styles["bullet"])
         )
@@ -339,16 +372,18 @@ def build_pdf(report: ResearchReport, lang: str = "en") -> str:
     story.append(Paragraph(get_text("sec_outlook", lang), styles["section_heading"]))
     story.append(Spacer(1, 4 * mm))
     for idx, outlook in enumerate(report.future_outlook, start=1):
-        story.append(Paragraph(f"<b>{idx}.</b>  {outlook}", styles["bullet"]))
+        story.append(
+            Paragraph(f"<b>{idx}.</b>  {xml_escape(outlook)}", styles["bullet"])
+        )
         story.append(Spacer(1, 2 * mm))
 
     story.append(PageBreak())
     story.append(Paragraph(get_text("sec_references", lang), styles["section_heading"]))
     story.append(Spacer(1, 4 * mm))
     for idx, ref in enumerate(report.references, start=1):
-        title = ref.get("title", "Untitled")
-        url = ref.get("url", "")
-        snippet = ref.get("snippet", "")
+        title = xml_escape(ref.get("title", "Untitled"))
+        url = ref.get("url", "").replace("&", "&amp;")
+        snippet = xml_escape(ref.get("snippet", ""))
         story.append(
             Paragraph(
                 f'<b>{idx}.</b> <a href="{url}" color="#0d47a1">{title}</a>',
