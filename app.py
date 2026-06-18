@@ -34,7 +34,7 @@ OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 # ── Page Configuration ──────────────────────────────────────────────
 st.set_page_config(
     page_title="DeepDive AI — Research Report Generator",
-    page_icon="🔬",
+    page_icon="🔍",
     layout="wide",
     initial_sidebar_state="expanded",
 )
