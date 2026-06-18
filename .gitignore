@@ -24,3 +24,11 @@ Thumbs.db
 
 # Fonts cache
 fonts/
+
+# Testing & Cache
+.coverage
+coverage.xml
+*.db
+debug_ollama_response.txt
+sample_docs.pdf
+

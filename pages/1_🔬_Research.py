@@ -82,7 +82,7 @@ st.markdown(
     @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
 
     /* ─── Global Styling ─── */
-    html, body, [class*="st-"] {
+    html, body, .stApp {
         font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
         color: #F8FAFC;
     }
@@ -93,6 +93,22 @@ st.markdown(
     .material-symbols-outlined,
     .material-icons {
         font-family: 'Material Symbols Outlined', 'Material Icons' !important;
+    }
+
+    /* Reset button styling inside File Uploader */
+    div[data-testid="stFileUploader"] button {
+        background: transparent !important;
+        color: #94A3B8 !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        box-shadow: none !important;
+        padding: 0.3rem 0.8rem !important;
+        font-weight: 500 !important;
+        transition: none !important;
+        transform: none !important;
+    }
+    div[data-testid="stFileUploader"] button:hover {
+        background: rgba(255, 255, 255, 0.05) !important;
+        border-color: rgba(255, 255, 255, 0.2) !important;
     }
 
     h1, h2, h3, h4, h5, h6 {
@@ -676,41 +692,11 @@ if generate_clicked:
                 st.session_state["generating"] = False
                 st.success(get_text("success_msg", lang))
 
-            except OSError as exc:
+            except Exception as e:
                 st.session_state["generating"] = False
-                st.session_state["validation_results"] = f"Failed (OS/API Key): {exc}"
-                st.error(f"❌ **Environment/API Key Error**: {exc}")
-                logger.error("Environment error: %s", exc)
-                logger.debug(traceback.format_exc())
-
-            except RuntimeError as exc:
-                st.session_state["generating"] = False
-                st.session_state["validation_results"] = f"Failed (Runtime): {exc}"
-                err_detail = str(exc)
-                if "is not running" in err_detail or "request failed" in err_detail:
-                    st.error(
-                        "🖥️ **Ollama not reachable.** "
-                        "Make sure Ollama is installed and running at "
-                        f"`{OLLAMA_BASE_URL}`: `ollama serve`"
-                    )
-                else:
-                    st.error(f"❌ **Ollama Error**: {exc}")
-                logger.error("API error: %s", exc)
-                logger.debug(traceback.format_exc())
-
-            except ValueError as exc:
-                st.session_state["generating"] = False
-                st.session_state["validation_results"] = f"Failed (Validation): {exc}"
-                st.error(f"⚠️ **Response Format Error**: {exc}")
-                logger.error("Schema / model error: %s", exc)
-                logger.debug(traceback.format_exc())
-
-            except Exception as exc:
-                st.session_state["generating"] = False
-                st.session_state["validation_results"] = f"Failed (Unexpected): {exc}"
-                st.error(f"❌ **Unexpected Error**: {exc}")
-                logger.error("Unexpected error: %s", exc)
-                logger.debug(traceback.format_exc())
+                st.session_state["validation_results"] = f"Failed: {e}"
+                logger.exception(e)
+                st.error(f"Actual Error: {repr(e)}")
 
 # ── Report Display ──────────────────────────────────────────────────
 report: ResearchReport | None = st.session_state.get("report")
@@ -1265,6 +1251,15 @@ if (
 ):
     st.markdown("---")
     st.markdown("### 🛠️ Ollama Diagnostic Logs")
+
+    with st.expander("DEBUG - OLLAMA REACHABILITY & TAGS"):
+        try:
+            import requests
+            r = requests.get("http://localhost:11434/api/tags", timeout=5)
+            st.success(f"Successfully reached Ollama (Status: {r.status_code})")
+            st.json(r.json())
+        except Exception as err:
+            st.error(f"Failed to reach Ollama: {err}")
 
     # Task 6: Add prompt diagnostics expander
     with st.expander("DEBUG - PROMPT"):

@@ -39,6 +39,10 @@ module = [
     "streamlit.*",
     "google.*",
     "reportlab.*",
-    "pptx.*"
+    "pptx.*",
+    "fitz.*",
+    "pymupdf4llm.*",
+    "faiss.*",
+    "sentence_transformers.*"
 ]
 ignore_missing_imports = true

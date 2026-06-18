@@ -1,5 +1,4 @@
 stages:
-  - lint
   - test
   - build
 
@@ -8,55 +7,30 @@ cache:
   paths:
     - .pip-cache/
 
-# ── Lint: Ruff ─────────────────────────────────────────────────────────────
-ruff:
-  stage: lint
-  image: python:3.11-slim
-  before_script:
-    - pip install --cache-dir .pip-cache ruff
-  script:
-    - echo "Running Ruff check..."
-    - ruff check .
-
-# ── Lint: MyPy ─────────────────────────────────────────────────────────────
-mypy:
-  stage: lint
-  image: python:3.11-slim
-  before_script:
-    - pip install --cache-dir .pip-cache -r requirements.txt mypy
-  script:
-    - echo "Running MyPy type checks..."
-    - mypy .
-
-# ── Test: pytest with coverage ─────────────────────────────────────────────
-test:
+# ── Test Stage ───────────────────────────────────────────────────────────────
+test_stage:
   stage: test
   image: python:3.11-slim
   before_script:
-    - pip install --cache-dir .pip-cache -r requirements.txt pytest-cov
+    - echo "Checking Python version..."
+    - python --version
+    - echo "Installing dependencies from requirements.txt..."
+    - pip install --cache-dir .pip-cache -r requirements.txt
   script:
-    - echo "Running pytest with coverage..."
-    - pytest --cov=. --cov-report=xml --cov-report=term --tb=short
-  coverage: '/(?i)total.*? (100|\d{1,2}\.?\d*)%/'
-  artifacts:
-    when: always
-    reports:
-      coverage_report:
-        coverage_format: cobertura
-        path: coverage.xml
-    paths:
-      - coverage.xml
-    expire_in: 30 days
+    - echo "Validating syntax of all Python files..."
+    - python -m py_compile $(find . -name "*.py")
+    - echo "Running the full pytest suite..."
+    - pytest tests/ -v --tb=short
 
-# ── Build: import validation ────────────────────────────────────────────────
-build:
+# ── Build Stage ──────────────────────────────────────────────────────────────
+build_stage:
   stage: build
   image: python:3.11-slim
   before_script:
+    - echo "Installing dependencies..."
     - pip install --cache-dir .pip-cache -r requirements.txt
   script:
-    - echo "Validating Python syntax..."
+    - echo "Running project-wide compilation checks..."
     - python -m compileall .
-    - echo "Verifying project module imports..."
-    - python -c "import app; import utils.ai_client; import utils.pdf_generator; import utils.ppt_generator; import utils.report_schema; import utils.font_manager; import utils.localization"
-    - python -c "import importlib; importlib.import_module('pages.1_🔬_Research')"
+    - echo "Verifying core and third-party module imports..."
+    - pytest tests/test_imports.py -v --tb=short

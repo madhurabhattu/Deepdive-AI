@@ -1,5 +1,8 @@
 # 🔬 DeepDive AI — Research Report Generator
 
+[![pipeline status](https://code.swecha.org/madhura1/deepdive-ai/badges/main/pipeline.svg)](https://code.swecha.org/madhura1/deepdive-ai/-/commits/main)
+[![coverage report](https://code.swecha.org/madhura1/deepdive-ai/badges/main/coverage.svg)](https://code.swecha.org/madhura1/deepdive-ai/-/commits/main)
+
 **DeepDive AI** is an AI-powered research report generator built with **Streamlit**.
 Enter any research topic and receive a comprehensive, structured report — complete
 with downloadable PDF and PowerPoint exports.

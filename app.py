@@ -13,6 +13,7 @@ from pathlib import Path
 import streamlit as st
 
 from utils.ai_client import OLLAMA_BASE_URL, OLLAMA_MODELS, is_ollama_available
+from utils.env_validator import validate_environment
 from utils.localization import LANGUAGES, detect_browser_language, get_text
 from utils.reviews_manager import render_sidebar_review_form
 
@@ -22,9 +23,13 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(name)s — %(message)s",
 )
 
+# ── Validate Environment variables ──────────────────────────────────
+validate_environment()
+
 # ── Ensure output directory exists at startup (T024) ────────────────
 OUTPUT_DIR = Path(__file__).resolve().parent / "output"
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
 
 # ── Page Configuration ──────────────────────────────────────────────
 st.set_page_config(
@@ -51,7 +56,7 @@ st.markdown(
     @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
 
     /* ─── Global Styling ─── */
-    html, body, [class*="st-"] {
+    html, body, .stApp {
         font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
         color: #F8FAFC;
     }
@@ -62,6 +67,22 @@ st.markdown(
     .material-symbols-outlined,
     .material-icons {
         font-family: 'Material Symbols Outlined', 'Material Icons' !important;
+    }
+
+    /* Reset button styling inside File Uploader to prevent override issues */
+    div[data-testid="stFileUploader"] button {
+        background: transparent !important;
+        color: #94A3B8 !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        box-shadow: none !important;
+        padding: 0.3rem 0.8rem !important;
+        font-weight: 500 !important;
+        transition: none !important;
+        transform: none !important;
+    }
+    div[data-testid="stFileUploader"] button:hover {
+        background: rgba(255, 255, 255, 0.05) !important;
+        border-color: rgba(255, 255, 255, 0.2) !important;
     }
 
     h1, h2, h3, h4, h5, h6 {
