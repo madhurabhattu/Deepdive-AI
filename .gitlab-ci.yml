@@ -1,4 +1,7 @@
 stages:
+  - security
+  - format
+  - lint
   - test
   - build
 
@@ -6,6 +9,55 @@ cache:
   key: "$CI_COMMIT_REF_SLUG"
   paths:
     - .pip-cache/
+
+# ── Security Stage ────────────────────────────────────────────────────────────
+security_gitleaks:
+  stage: security
+  image:
+    name: zricethezav/gitleaks:latest
+    entrypoint: [""]
+  script:
+    - echo "Running Gitleaks secret detection..."
+    - gitleaks detect --verbose --source=.
+
+security_bandit:
+  stage: security
+  image: python:3.11-slim
+  before_script:
+    - pip install --cache-dir .pip-cache bandit
+  script:
+    - echo "Running Bandit security analysis..."
+    - bandit -r utils/ app.py pages/
+
+# ── Format Stage ──────────────────────────────────────────────────────────────
+format_ruff:
+  stage: format
+  image: python:3.11-slim
+  before_script:
+    - pip install --cache-dir .pip-cache ruff
+  script:
+    - echo "Checking code formatting with Ruff..."
+    - ruff format --check .
+
+# ── Lint Stage ────────────────────────────────────────────────────────────────
+lint_ruff:
+  stage: lint
+  image: python:3.11-slim
+  before_script:
+    - pip install --cache-dir .pip-cache ruff
+  script:
+    - echo "Running Ruff lint checks..."
+    - ruff check .
+
+lint_mypy:
+  stage: lint
+  image: python:3.11-slim
+  before_script:
+    - pip install --cache-dir .pip-cache -r requirements.txt
+    - pip install --cache-dir .pip-cache mypy
+  script:
+    - echo "Running MyPy type checks..."
+    - mypy .
 
 # ── Test Stage ───────────────────────────────────────────────────────────────
 test_stage:
