@@ -46,16 +46,11 @@ class RecursiveTextSplitter:
             # If no separators left, split character by character
             return [
                 text[i : i + self.chunk_size]
-                for i in range(
-                    0, len(text), self.chunk_size - self.chunk_overlap
-                )
+                for i in range(0, len(text), self.chunk_size - self.chunk_overlap)
             ]
 
         separator = separators[0]
-        if separator == "":
-            splits = list(text)
-        else:
-            splits = text.split(separator)
+        splits = list(text) if separator == "" else text.split(separator)
 
         chunks = []
         current_chunk: list[str] = []
@@ -120,9 +115,7 @@ def chunk_document_pages(
     Returns:
         List of DocumentChunk objects.
     """
-    splitter = RecursiveTextSplitter(
-        chunk_size=chunk_size, chunk_overlap=chunk_overlap
-    )
+    splitter = RecursiveTextSplitter(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
     chunks = []
 
     for page in pages:

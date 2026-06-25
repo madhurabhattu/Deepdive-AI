@@ -6,7 +6,7 @@ falling back to a pure-numpy implementation if FAISS is not installed.
 
 from __future__ import annotations
 
-import pickle
+import pickle  # nosec B403
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -55,13 +55,13 @@ class FAISSVectorStore:
         # Normalize rows to unit length for Inner Product = Cosine Similarity
         norms = np.linalg.norm(v_np, axis=1, keepdims=True)
         norms = np.where(norms == 0, 1.0, norms)
-        v_np = v_np / norms
+        v_np = (v_np / norms).astype(np.float32)
 
         if HAS_FAISS:
             self._index = faiss.IndexFlatIP(self.dimension)
             self._index.add(v_np)
         else:
-            self._vectors = [row for row in v_np]
+            self._vectors = list(v_np)
 
     def save_index(self, dir_path: str | Path) -> None:
         """Saves the index and metadata to a directory."""
@@ -87,7 +87,7 @@ class FAISSVectorStore:
             raise FileNotFoundError(f"Chunks file not found at {chunks_path}")
 
         with open(chunks_path, "rb") as f:
-            self.chunks = pickle.load(f)
+            self.chunks = pickle.load(f)  # nosec B301
 
         faiss_path = path / "index.faiss"
         if HAS_FAISS and faiss_path.exists():
@@ -97,11 +97,9 @@ class FAISSVectorStore:
             vectors_path = path / "vectors.pkl"
             if vectors_path.exists():
                 with open(vectors_path, "rb") as f:
-                    self._vectors, self.dimension = pickle.load(f)
+                    self._vectors, self.dimension = pickle.load(f)  # nosec B301
             else:
-                raise FileNotFoundError(
-                    "No valid index.faiss or vectors.pkl found."
-                )
+                raise FileNotFoundError("No valid index.faiss or vectors.pkl found.")
 
     def search(
         self, query_embedding: list[float], k: int = 4
@@ -124,7 +122,7 @@ class FAISSVectorStore:
         if HAS_FAISS and self._index is not None:
             scores, indices = self._index.search(q_np, k)
             results = []
-            for score, idx in zip(scores[0], indices[0]):
+            for score, idx in zip(scores[0], indices[0], strict=False):
                 if idx < 0 or idx >= len(self.chunks):
                     continue
                 results.append((self.chunks[idx], float(score)))

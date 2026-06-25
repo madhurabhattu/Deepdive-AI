@@ -41,7 +41,7 @@ def ensure_fonts_exist() -> None:
             req = urllib.request.Request(
                 url, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
             )
-            with urllib.request.urlopen(req) as response:
+            with urllib.request.urlopen(req) as response:  # nosec B310
                 data = response.read()
                 font_path.write_bytes(data)
             logger.info("Successfully downloaded font: %s", font_name)

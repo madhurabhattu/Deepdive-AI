@@ -26,6 +26,7 @@ def test_ai_provider_imports() -> None:
 def test_ollama_integration() -> None:
     """Verifies that ollama-related client structures are importable."""
     import ollama
+
     from utils.ai_client import (
         OLLAMA_BASE_URL,
         OLLAMA_MODELS,

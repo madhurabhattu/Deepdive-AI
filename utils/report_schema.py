@@ -49,9 +49,7 @@ class ResearchReport:
     warnings: list[str] = field(default_factory=list)
 
 
-def parse_report(
-    raw_json: str, topic: str, strict: bool = True
-) -> ResearchReport:
+def parse_report(raw_json: str, topic: str, strict: bool = True) -> ResearchReport:
     """Parse and validate an AI-generated JSON string into a ResearchReport.
 
     Parameters
@@ -123,6 +121,7 @@ def parse_report(
     # Store in streamlit session state if streamlit is imported
     try:
         import streamlit as st
+
         st.session_state["missing_fields"] = missing_fields
     except ImportError:
         pass
@@ -151,9 +150,7 @@ def parse_report(
             )
 
         # Core Concepts
-        if "core_concepts" not in data or not isinstance(
-            data["core_concepts"], list
-        ):
+        if "core_concepts" not in data or not isinstance(data["core_concepts"], list):
             data["core_concepts"] = []
 
         normalized_cc = []
@@ -161,12 +158,14 @@ def parse_report(
             if isinstance(item, dict):
                 normalized_cc.append(item)
             elif isinstance(item, str):
-                normalized_cc.append({
-                    "term": item,
-                    "definition": (
-                        f"Refer to main report content for details on {item}."
-                    ),
-                })
+                normalized_cc.append(
+                    {
+                        "term": item,
+                        "definition": (
+                            f"Refer to main report content for details on {item}."
+                        ),
+                    }
+                )
         data["core_concepts"] = normalized_cc
 
         for item in data["core_concepts"]:
@@ -179,13 +178,15 @@ def parse_report(
         while len(data["core_concepts"]) < 3:
             padded_cc = True
             idx = len(data["core_concepts"]) + 1
-            data["core_concepts"].append({
-                "term": f"Topic discussion area {idx}",
-                "definition": (
-                    "Refer to the executive summary or background context "
-                    "for details on this area."
-                ),
-            })
+            data["core_concepts"].append(
+                {
+                    "term": f"Topic discussion area {idx}",
+                    "definition": (
+                        "Refer to the executive summary or background context "
+                        "for details on this area."
+                    ),
+                }
+            )
         if padded_cc:
             warnings_list.append(
                 "Model returned fewer core_concepts than expected. "
@@ -193,9 +194,7 @@ def parse_report(
             )
 
         # Key Insights
-        if "key_insights" not in data or not isinstance(
-            data["key_insights"], list
-        ):
+        if "key_insights" not in data or not isinstance(data["key_insights"], list):
             data["key_insights"] = []
         data["key_insights"] = [
             str(i).strip() for i in data["key_insights"] if str(i).strip()
@@ -239,11 +238,13 @@ def parse_report(
                     or "danger" in item_lower
                 ):
                     t = "risk"
-                normalized_bcr.append({
-                    "item": item,
-                    "type": t,
-                    "description": f"Analysis regarding {item}.",
-                })
+                normalized_bcr.append(
+                    {
+                        "item": item,
+                        "type": t,
+                        "description": f"Analysis regarding {item}.",
+                    }
+                )
         data["benefits_challenges_risks"] = normalized_bcr
 
         for item in data["benefits_challenges_risks"]:
@@ -263,14 +264,16 @@ def parse_report(
             padded_bcr = True
             idx = len(data["benefits_challenges_risks"]) + 1
             t_type = types_list[(idx - 1) % 3]
-            data["benefits_challenges_risks"].append({
-                "item": "Additional aspect",
-                "type": t_type,
-                "description": (
-                    f"Specific details regarding this {t_type} aspect were not "
-                    "populated by the AI."
-                ),
-            })
+            data["benefits_challenges_risks"].append(
+                {
+                    "item": "Additional aspect",
+                    "type": t_type,
+                    "description": (
+                        f"Specific details regarding this {t_type} aspect were not "
+                        "populated by the AI."
+                    ),
+                }
+            )
         if padded_bcr:
             warnings_list.append(
                 "Model returned fewer benefits/challenges/risks than expected. "
@@ -288,10 +291,12 @@ def parse_report(
             if isinstance(item, dict):
                 normalized_rwa.append(item)
             elif isinstance(item, str):
-                normalized_rwa.append({
-                    "application": item,
-                    "description": f"Practical application of {item}.",
-                })
+                normalized_rwa.append(
+                    {
+                        "application": item,
+                        "description": f"Practical application of {item}.",
+                    }
+                )
         data["real_world_applications"] = normalized_rwa
 
         for item in data["real_world_applications"]:
@@ -306,12 +311,14 @@ def parse_report(
         while len(data["real_world_applications"]) < 3:
             padded_rwa = True
             idx = len(data["real_world_applications"]) + 1
-            data["real_world_applications"].append({
-                "application": "Industry adoption use case",
-                "description": (
-                    "Adoption details for this use case are not specified."
-                ),
-            })
+            data["real_world_applications"].append(
+                {
+                    "application": "Industry adoption use case",
+                    "description": (
+                        "Adoption details for this use case are not specified."
+                    ),
+                }
+            )
         if padded_rwa:
             warnings_list.append(
                 "Model returned fewer real-world applications than expected. "
@@ -319,9 +326,7 @@ def parse_report(
             )
 
         # Future Outlook
-        if "future_outlook" not in data or not isinstance(
-            data["future_outlook"], list
-        ):
+        if "future_outlook" not in data or not isinstance(data["future_outlook"], list):
             data["future_outlook"] = []
         data["future_outlook"] = [
             str(i).strip() for i in data["future_outlook"] if str(i).strip()
@@ -331,8 +336,7 @@ def parse_report(
             padded_fo = True
             idx = len(data["future_outlook"]) + 1
             data["future_outlook"].append(
-                "Emerging trend or strategic recommendation details are "
-                "unavailable."
+                "Emerging trend or strategic recommendation details are unavailable."
             )
         if padded_fo:
             warnings_list.append(
@@ -351,15 +355,19 @@ def parse_report(
             elif isinstance(item, str):
                 if ":" in item:
                     parts = item.split(":", 1)
-                    normalized_stats.append({
-                        "label": parts[0].strip(),
-                        "value": parts[1].strip(),
-                    })
+                    normalized_stats.append(
+                        {
+                            "label": parts[0].strip(),
+                            "value": parts[1].strip(),
+                        }
+                    )
                 else:
-                    normalized_stats.append({
-                        "label": item,
-                        "value": "Value",
-                    })
+                    normalized_stats.append(
+                        {
+                            "label": item,
+                            "value": "Value",
+                        }
+                    )
         data["statistics"] = normalized_stats
 
         for item in data["statistics"]:
@@ -385,10 +393,12 @@ def parse_report(
         while len(data["statistics"]) < 3:
             padded_s = True
             idx = len(data["statistics"]) + 1
-            data["statistics"].append({
-                "label": "Additional metric",
-                "value": "N/A",
-            })
+            data["statistics"].append(
+                {
+                    "label": "Additional metric",
+                    "value": "N/A",
+                }
+            )
         if padded_s:
             warnings_list.append(
                 "Model returned fewer statistics than expected. "
@@ -404,11 +414,13 @@ def parse_report(
             if isinstance(item, dict):
                 normalized_ref.append(item)
             elif isinstance(item, str):
-                normalized_ref.append({
-                    "title": item,
-                    "url": "https://example.com",
-                    "snippet": f"Reference source for {item}.",
-                })
+                normalized_ref.append(
+                    {
+                        "title": item,
+                        "url": "https://example.com",
+                        "snippet": f"Reference source for {item}.",
+                    }
+                )
         data["references"] = normalized_ref
 
         for item in data["references"]:
@@ -423,11 +435,13 @@ def parse_report(
         while len(data["references"]) < 3:
             padded_r = True
             idx = len(data["references"]) + 1
-            data["references"].append({
-                "title": f"Reference Source {idx}",
-                "url": "https://example.com",
-                "snippet": f"Additional reference info for {topic}.",
-            })
+            data["references"].append(
+                {
+                    "title": f"Reference Source {idx}",
+                    "url": "https://example.com",
+                    "snippet": f"Additional reference info for {topic}.",
+                }
+            )
         if padded_r:
             warnings_list.append(
                 "Model returned fewer references than expected. "

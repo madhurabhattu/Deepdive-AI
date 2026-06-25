@@ -154,9 +154,7 @@ def render_sidebar_review_form() -> None:
                     review_rating,
                     comment_val,
                 )
-                st.session_state["review_success_msg"] = (
-                    "Thank you for your review!"
-                )
+                st.session_state["review_success_msg"] = "Thank you for your review!"
                 # Clear fields
                 st.session_state[name_key] = ""
                 st.session_state[comment_key] = ""

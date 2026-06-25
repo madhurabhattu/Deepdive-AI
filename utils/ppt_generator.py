@@ -460,9 +460,7 @@ def build_ppt(report: ResearchReport, lang: str = "en") -> str:
     )
 
     stats_list = (
-        report.statistics[3:6]
-        if len(report.statistics) >= 6
-        else report.statistics[:3]
+        report.statistics[3:6] if len(report.statistics) >= 6 else report.statistics[:3]
     )
     for idx, stat in enumerate(stats_list):
         top_offset = Inches(2.6 + idx * 1.3)

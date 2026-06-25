@@ -7,16 +7,15 @@ from __future__ import annotations
 
 import logging
 import os
-import sys
 import tempfile
-import time
+
 import streamlit as st
 
-from utils.ai_client import OLLAMA_BASE_URL, OLLAMA_MODELS, is_ollama_available
+from utils.ai_client import is_ollama_available
 from utils.document_chunker import chunk_document_pages
 from utils.document_loader import load_pdf_document
 from utils.embedding_service import get_embeddings
-from utils.localization import LANGUAGES, get_text
+from utils.localization import LANGUAGES
 from utils.rag_pipeline import stream_rag_answer
 from utils.vector_store import FAISSVectorStore
 
@@ -127,7 +126,7 @@ QA_TRANSLATIONS = {
         "active_docs": "క్రియాశీల పత్రాలు:",
         "clear_index": "🗑️ ఇండెక్స్ క్లియర్ చేయి",
         "settings_section": "⚙️ సెట్టింగులు",
-    }
+    },
 }
 
 
@@ -135,9 +134,7 @@ def get_qa_text(key: str, lang: str = "en") -> str:
     """Gets localized QA text, falling back to English."""
     if lang not in QA_TRANSLATIONS:
         lang = "en"
-    return QA_TRANSLATIONS[lang].get(
-        key, QA_TRANSLATIONS["en"].get(key, key)
-    )
+    return QA_TRANSLATIONS[lang].get(key, QA_TRANSLATIONS["en"].get(key, key))
 
 
 # ── CSS Styling ─────────────────────────────────────────────────────
@@ -281,7 +278,9 @@ st.markdown(
 lang = st.session_state.get("ui_lang", "en")
 
 if "qa_uploaded_files" not in st.session_state:
-    st.session_state["qa_uploaded_files"] = {}  # {filename: {"bytes": bytes, "chunks": list}}
+    st.session_state[
+        "qa_uploaded_files"
+    ] = {}  # {filename: {"bytes": bytes, "chunks": list}}
 if "qa_vector_store" not in st.session_state:
     st.session_state["qa_vector_store"] = None
 if "qa_indexed_files" not in st.session_state:
@@ -338,15 +337,16 @@ with st.sidebar:
                 }
 
     # Debug: programmatic load button for automated browser checks
-    if os.path.exists("sample_docs.pdf"):
-        if st.button("📥 Load Sample PDF", use_container_width=True):
-            with open("sample_docs.pdf", "rb") as f:
-                st.session_state["qa_uploaded_files"]["sample_docs.pdf"] = {
-                    "bytes": f.read(),
-                    "chunks": [],
-                }
-            st.toast("Loaded sample_docs.pdf from disk!", icon="📥")
-            st.rerun()
+    if os.path.exists("sample_docs.pdf") and st.button(
+        "📥 Load Sample PDF", use_container_width=True
+    ):
+        with open("sample_docs.pdf", "rb") as f:
+            st.session_state["qa_uploaded_files"]["sample_docs.pdf"] = {
+                "bytes": f.read(),
+                "chunks": [],
+            }
+        st.toast("Loaded sample_docs.pdf from disk!", icon="📥")
+        st.rerun()
 
     # Display active files and allow removal
     if st.session_state["qa_uploaded_files"]:
@@ -359,7 +359,9 @@ with st.sidebar:
                 indexed_bullet = "✅" if is_indexed else "⏳"
                 st.caption(f"{indexed_bullet} {filename}")
             with col_del:
-                if st.button("❌", key=f"del_{filename}", help=get_qa_text("remove_doc", lang)):
+                if st.button(
+                    "❌", key=f"del_{filename}", help=get_qa_text("remove_doc", lang)
+                ):
                     to_delete.append(filename)
 
         if to_delete:
@@ -392,12 +394,14 @@ with st.sidebar:
     # Index button
     unindexed_files = [
         f
-        for f in st.session_state["qa_uploaded_files"].keys()
+        for f in st.session_state["qa_uploaded_files"]
         if f not in st.session_state["qa_indexed_files"]
     ]
     if unindexed_files:
         st.divider()
-        if st.button(get_qa_text("index_btn", lang), type="primary", use_container_width=True):
+        if st.button(
+            get_qa_text("index_btn", lang), type="primary", use_container_width=True
+        ):
             progress_bar = st.progress(0.0)
             status_text = st.empty()
 
@@ -413,10 +417,14 @@ with st.sidebar:
                 total_files = len(unindexed_files)
                 for idx, filename in enumerate(unindexed_files):
                     status_text.text(f"Extracting text from {filename}...")
-                    file_bytes = st.session_state["qa_uploaded_files"][filename]["bytes"]
+                    file_bytes = st.session_state["qa_uploaded_files"][filename][
+                        "bytes"
+                    ]
 
                     # Write to temporary file for PyMuPDF/fitz extraction
-                    with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
+                    with tempfile.NamedTemporaryFile(
+                        suffix=".pdf", delete=False
+                    ) as tmp:
                         tmp.write(file_bytes)
                         tmp_path = tmp.name
 
@@ -468,13 +476,14 @@ with st.sidebar:
                 st.error(f"Indexing failed: {exc}")
 
     # Clear index button
-    if st.session_state["qa_indexed_files"]:
-        if st.button(get_qa_text("clear_index", lang), use_container_width=True):
-            st.session_state["qa_uploaded_files"] = {}
-            st.session_state["qa_indexed_files"] = []
-            st.session_state["qa_vector_store"] = None
-            st.session_state["qa_messages"] = []
-            st.rerun()
+    if st.session_state["qa_indexed_files"] and st.button(
+        get_qa_text("clear_index", lang), use_container_width=True
+    ):
+        st.session_state["qa_uploaded_files"] = {}
+        st.session_state["qa_indexed_files"] = []
+        st.session_state["qa_vector_store"] = None
+        st.session_state["qa_messages"] = []
+        st.rerun()
 
 # ── Header Section ───────────────────────────────────────────────────
 col_title, col_lang = st.columns([5, 1])

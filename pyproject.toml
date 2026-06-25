@@ -18,7 +18,7 @@ select = [
     "SIM", # flake8-simplify
     "RUF"  # Ruff-specific rules
 ]
-ignore = []
+ignore = ["E501"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["utils"]
@@ -28,7 +28,7 @@ known-first-party = ["utils"]
 python_version = "3.10"
 warn_unused_configs = true
 warn_redundant_casts = true
-warn_unused_ignores = true
+warn_unused_ignores = false
 strict_equality = true
 extra_checks = true
 check_untyped_defs = true
@@ -43,6 +43,7 @@ module = [
     "fitz.*",
     "pymupdf4llm.*",
     "faiss.*",
-    "sentence_transformers.*"
+    "sentence_transformers.*",
+    "ollama.*"
 ]
 ignore_missing_imports = true

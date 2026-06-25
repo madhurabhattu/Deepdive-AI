@@ -9,14 +9,12 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
-import os
 import sqlite3
 import urllib.request
+from pathlib import Path
 from typing import Any
 
 logger = logging.getLogger(__name__)
-
-from pathlib import Path
 
 # Cache database path
 CACHE_DB_PATH = str(
@@ -48,7 +46,7 @@ class SQLiteEmbeddingCache:
 
     def get(self, model_name: str, text: str) -> list[float] | None:
         """Retrieves cached embedding if exists."""
-        key = hashlib.sha256(f"{model_name}:{text}".encode("utf-8")).hexdigest()
+        key = hashlib.sha256(f"{model_name}:{text}".encode()).hexdigest()
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
@@ -66,7 +64,7 @@ class SQLiteEmbeddingCache:
 
     def set(self, model_name: str, text: str, embedding: list[float]) -> None:
         """Caches embedding for the given text."""
-        key = hashlib.sha256(f"{model_name}:{text}".encode("utf-8")).hexdigest()
+        key = hashlib.sha256(f"{model_name}:{text}".encode()).hexdigest()
         try:
             with sqlite3.connect(self.db_path) as conn:
                 conn.execute(
@@ -119,7 +117,7 @@ def _embed_ollama_batch(
             data=json.dumps(payload).encode("utf-8"),
             headers={"Content-Type": "application/json"},
         )
-        with urllib.request.urlopen(req, timeout=60) as resp:
+        with urllib.request.urlopen(req, timeout=60) as resp:  # nosec B310
             res = json.loads(resp.read().decode("utf-8"))
             val: list[list[float]] = res["embeddings"]
             return val
@@ -138,7 +136,7 @@ def _embed_ollama_batch(
             data=json.dumps(payload).encode("utf-8"),
             headers={"Content-Type": "application/json"},
         )
-        with urllib.request.urlopen(req, timeout=10) as resp:
+        with urllib.request.urlopen(req, timeout=10) as resp:  # nosec B310
             res = json.loads(resp.read().decode("utf-8"))
             embeddings.append(res["embedding"])
     return embeddings
@@ -223,7 +221,7 @@ def get_embeddings(
 
     # Save to cache and construct final results
     for idx, (orig_idx, text) in enumerate(
-        zip(uncached_indices, uncached_texts)
+        zip(uncached_indices, uncached_texts, strict=False)
     ):
         emb = computed_embeddings[idx]
         cache.set(actual_model, text, emb)

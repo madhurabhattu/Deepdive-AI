@@ -45,8 +45,7 @@ TRANSLATIONS = {
         "feat_ppt_title": "PowerPoint Deck",
         "feat_ppt_desc": "Get a ready-to-present slide deck for meetings.",
         "cta_text": (
-            "👉 Select <strong>🔬 Research</strong> from the sidebar "
-            "to get started."
+            "👉 Select <strong>🔬 Research</strong> from the sidebar to get started."
         ),
         "ui_language": "UI Language",
         "report_language": "Report Language",
@@ -62,8 +61,7 @@ TRANSLATIONS = {
         ),
         "err_generation": "❌ Research generation failed. Please try again.",
         "err_schema": (
-            "⚠️ The AI returned an unexpected response format. "
-            "Please try again."
+            "⚠️ The AI returned an unexpected response format. Please try again."
         ),
         "err_unexpected": "❌ An unexpected error occurred. Please try again.",
         "sec_summary": "📝 Executive Summary",
@@ -146,8 +144,7 @@ TRANSLATIONS = {
         "btn_generate": "🚀 रिपोर्ट उत्पन्न करें",
         "warning_empty_topic": "⚠️ कृपया एक शोध विषय दर्ज करें।",
         "spinner_msg": (
-            "🔍 **{topic}** पर शोध किया जा रहा है… "
-            "इसमें 30 सेकंड तक का समय लग सकता है।"
+            "🔍 **{topic}** पर शोध किया जा रहा है… इसमें 30 सेकंड तक का समय लग सकता है।"
         ),
         "success_msg": "✅ रिपोर्ट सफलतापूर्वक उत्पन्न हुई!",
         "err_api_key": (
@@ -219,8 +216,7 @@ TRANSLATIONS = {
         ),
         "feat_summary_title": "कार्यकारी सारांश",
         "feat_summary_desc": (
-            "एआय द्वारे तयार केलेल्या तुमच्या संशोधन विषयाचे "
-            "संक्षिप्त, व्यावसायिक विहंगावलोकन।"
+            "एआय द्वारे तयार केलेल्या तुमच्या संशोधन विषयाचे संक्षिप्त, व्यावसायिक विहंगावलोकन।"
         ),
         "feat_insights_title": "महत्त्वपूर्ण अंतर्दृष्टी",
         "feat_insights_desc": "द्रुत आकलनासाठी सर्वात महत्त्वाचे निष्कर्ष आणि शिकवण।",
@@ -309,8 +305,7 @@ TRANSLATIONS = {
         ),
         "feat_summary_title": "ఎగ్జిక్యూటివ్ సారాంశం",
         "feat_summary_desc": (
-            "AI చేత రూపొందించబడిన మీ పరిశోధనా అంశం యొక్క "
-            "సంక్షిప్త, వృత్తిపరమైన అవలోకనం."
+            "AI చేత రూపొందించబడిన మీ పరిశోధనా అంశం యొక్క సంక్షిప్త, వృత్తిపరమైన అవలోకనం."
         ),
         "feat_insights_title": "ముఖ్యమైన అంతర్దృష్టులు",
         "feat_insights_desc": "త్వరిత అవగాహన కోసం అత్యంత ముఖ్యమైన అన్వేషణలు మరియు ముఖ్యాంశాలు.",
@@ -402,6 +397,6 @@ def detect_browser_language() -> str:
             first_lang = accept_lang.split(",")[0].split("-")[0].strip().lower()
             if first_lang in LANGUAGES:
                 detected = first_lang
-    except Exception:
+    except Exception:  # nosec B110
         pass
     return detected

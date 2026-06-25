@@ -15,7 +15,6 @@ from __future__ import annotations
 
 import logging
 import os
-import traceback
 
 import streamlit as st
 
@@ -466,9 +465,7 @@ with st.sidebar:
         "AI Provider",
         options=list(provider_options.keys()),
         format_func=lambda k: provider_options[k],
-        index=list(provider_options.keys()).index(
-            st.session_state["ai_provider"]
-        ),
+        index=list(provider_options.keys()).index(st.session_state["ai_provider"]),
         key="ai_provider_selector_research",
         label_visibility="collapsed",
     )
@@ -649,6 +646,7 @@ if generate_clicked:
 
         import utils.ai_client
         import utils.report_schema
+
         importlib.reload(utils.ai_client)
         importlib.reload(utils.report_schema)
         from utils.ai_client import generate_research_report
@@ -659,9 +657,7 @@ if generate_clicked:
         st.session_state["pdf_path"] = None
         st.session_state["ppt_path"] = None
 
-        spinner_msg = get_text("spinner_msg", lang).format(
-            topic=display_topic
-        )
+        spinner_msg = get_text("spinner_msg", lang).format(topic=display_topic)
         with st.spinner(spinner_msg):
             try:
                 raw_json = generate_research_report(
@@ -671,15 +667,15 @@ if generate_clicked:
                     byok_key=st.session_state["byok_api_key"] or None,
                     ollama_model=st.session_state["ollama_model"],
                 )
-                is_ollama = (st.session_state.get("ai_provider") == "ollama")
+                is_ollama = st.session_state.get("ai_provider") == "ollama"
                 st.session_state["raw_ollama_response"] = raw_json
                 cleaned_or_raw = (
-                    st.session_state.get("cleaned_ollama_response")
-                    or raw_json
+                    st.session_state.get("cleaned_ollama_response") or raw_json
                 )
                 st.session_state["cleaned_ollama_response"] = cleaned_or_raw
                 try:
                     import json
+
                     st.session_state["parsed_json"] = json.loads(raw_json)
                 except Exception:
                     st.session_state["parsed_json"] = None
@@ -696,7 +692,7 @@ if generate_clicked:
                 st.session_state["generating"] = False
                 st.session_state["validation_results"] = f"Failed: {e}"
                 logger.exception(e)
-                st.error(f"Actual Error: {repr(e)}")
+                st.error(f"Actual Error: {e!r}")
 
 # ── Report Display ──────────────────────────────────────────────────
 report: ResearchReport | None = st.session_state.get("report")
@@ -794,7 +790,8 @@ if report is not None:
 
     # Render stat cards in columns (up to 3 per row) (Task 5)
     stats = [
-        s for s in report.statistics
+        s
+        for s in report.statistics
         if isinstance(s, dict)
         and s.get("label")
         and s.get("value")
@@ -1052,12 +1049,8 @@ if report is not None:
                     "background_context": report.background_context,
                     "core_concepts": report.core_concepts,
                     "key_insights": report.key_insights,
-                    "benefits_challenges_risks": (
-                        report.benefits_challenges_risks
-                    ),
-                    "real_world_applications": (
-                        report.real_world_applications
-                    ),
+                    "benefits_challenges_risks": (report.benefits_challenges_risks),
+                    "real_world_applications": (report.real_world_applications),
                     "future_outlook": report.future_outlook,
                     "statistics": report.statistics,
                     "references": report.references,
@@ -1107,7 +1100,7 @@ if not reviews:
         """border: 1px solid rgba(255, 255, 255, 0.06);">
             <h3 style="margin: 0; color: #F8FAFC;">🌟 No reviews yet</h3>
             <p style="color: #94A3B8; margin-top: 0.5rem; """
-            """margin-bottom: 0;">Be the first person to review DeepDive AI.</p>
+        """margin-bottom: 0;">Be the first person to review DeepDive AI.</p>
         </div>
         """,
         unsafe_allow_html=True,
@@ -1136,12 +1129,12 @@ else:
             """display: flex; flex-direction: column; justify-content: """
             """center; align-items: center;">
                 <div style="font-size: 3.2rem; font-weight: 800; """
-                f"""color: #F8FAFC; line-height: 1;">{average_rating}</div>
+            f"""color: #F8FAFC; line-height: 1;">{average_rating}</div>
                 <div style="color: #A855F7; font-size: 1.6rem; margin: """
-                """0.5rem 0; letter-spacing: 2px;">"""
-                f"""{filled_stars}{empty_stars}</div>
+            """0.5rem 0; letter-spacing: 2px;">"""
+            f"""{filled_stars}{empty_stars}</div>
                 <div style="color: #94A3B8; font-size: 0.95rem;">"""
-                f"""Based on {total_reviews} reviews</div>
+            f"""Based on {total_reviews} reviews</div>
             </div>
             """,
             unsafe_allow_html=True,
@@ -1158,17 +1151,17 @@ else:
                 <div style="display: flex; align-items: center; """
                 """margin-bottom: 0.5rem;">
                     <div style="width: 85px; color: #A855F7; """
-                    """font-family: monospace; """
-                    f"""font-size: 0.9rem; letter-spacing: 1px;">{star_label}</div>
+                """font-family: monospace; """
+                f"""font-size: 0.9rem; letter-spacing: 1px;">{star_label}</div>
                     <div style="flex-grow: 1; height: 8px; background: """
-                    """rgba(255, 255, 255, 0.05); border-radius: 4px; """
-                    """margin: 0 12px; overflow: hidden; position: relative;">
+                """rgba(255, 255, 255, 0.05); border-radius: 4px; """
+                """margin: 0 12px; overflow: hidden; position: relative;">
                         <div style="width: {pct}%; height: 100%; background: """
-                        """linear-gradient(90deg, #7C3AED, #EC4899); """
-                        """border-radius: 4px;"></div>
+                """linear-gradient(90deg, #7C3AED, #EC4899); """
+                """border-radius: 4px;"></div>
                     </div>
                     <div style="width: 35px; text-align: right; color: #94A3B8; """
-                    f"""font-size: 0.85rem; font-weight: 600;">{count}</div>
+                f"""font-size: 0.85rem; font-weight: 600;">{count}</div>
                 </div>
                 """,
                 unsafe_allow_html=True,
@@ -1255,9 +1248,10 @@ if (
     with st.expander("DEBUG - OLLAMA REACHABILITY & TAGS"):
         try:
             import requests
-            r = requests.get("http://localhost:11434/api/tags", timeout=5)
-            st.success(f"Successfully reached Ollama (Status: {r.status_code})")
-            st.json(r.json())
+
+            resp_tags = requests.get("http://localhost:11434/api/tags", timeout=5)
+            st.success(f"Successfully reached Ollama (Status: {resp_tags.status_code})")
+            st.json(resp_tags.json())
         except Exception as err:
             st.error(f"Failed to reach Ollama: {err}")
 
@@ -1282,6 +1276,7 @@ if (
         st.json(parsed_obj or {})
 
         from utils.report_schema import REQUIRED_FIELDS
+
         st.write("EXPECTED SCHEMA:")
         st.json(REQUIRED_FIELDS)
 

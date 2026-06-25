@@ -372,9 +372,7 @@ with st.sidebar:
         "AI Provider",
         options=list(provider_options.keys()),
         format_func=lambda k: provider_options[k],
-        index=list(provider_options.keys()).index(
-            st.session_state["ai_provider"]
-        ),
+        index=list(provider_options.keys()).index(st.session_state["ai_provider"]),
         key="ai_provider_selector",
         label_visibility="collapsed",
     )
@@ -414,9 +412,7 @@ with st.sidebar:
             ),
         )
         st.session_state["byok_api_key"] = byok_input
-        st.caption(
-            "[Get a free key](https://ai.google.dev)"
-        )
+        st.caption("[Get a free key](https://ai.google.dev)")
         st.markdown(
             "<div style='"
             "background:rgba(124,58,237,0.12);"

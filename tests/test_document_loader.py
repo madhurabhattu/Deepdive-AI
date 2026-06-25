@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
+
 from utils.document_loader import extract_text_from_pdf
 
 

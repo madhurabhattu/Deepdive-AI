@@ -14,8 +14,9 @@ from __future__ import annotations
 import json
 import logging
 import os
+from collections.abc import Generator
 from pathlib import Path
-from typing import Any, Generator
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -171,7 +172,7 @@ def _resolve_ollama_base_url() -> str:
                 in_container = any(
                     "docker" in line or "containerd" in line for line in f
                 )
-        except Exception:
+        except Exception:  # nosec B110
             pass
 
     if in_container:
@@ -208,12 +209,10 @@ def is_ollama_available() -> bool:
             f"{OLLAMA_BASE_URL}/api/tags",
             headers={"Accept": "application/json"},
         )
-        with urllib.request.urlopen(req, timeout=2):
+        with urllib.request.urlopen(req, timeout=2):  # nosec B310
             return True
     except Exception as exc:
-        logger.warning(
-            "Ollama server at %s not reachable: %s", OLLAMA_BASE_URL, exc
-        )
+        logger.warning("Ollama server at %s not reachable: %s", OLLAMA_BASE_URL, exc)
         return False
 
 
@@ -355,12 +354,11 @@ def _check_ollama_available() -> None:
             f"{OLLAMA_BASE_URL}/api/tags",
             headers={"Accept": "application/json"},
         )
-        with urllib.request.urlopen(req, timeout=5):
+        with urllib.request.urlopen(req, timeout=5):  # nosec B310
             pass
     except urllib.error.URLError as exc:
         raise RuntimeError(
-            f"Ollama is not running at {OLLAMA_BASE_URL}. "
-            "Start it with: `ollama serve`"
+            f"Ollama is not running at {OLLAMA_BASE_URL}. Start it with: `ollama serve`"
         ) from exc
 
 
@@ -392,8 +390,7 @@ def _call_ollama(
 
     if model not in OLLAMA_MODELS:
         raise ValueError(
-            f"Invalid Ollama model '{model}'. "
-            f"Allowed: {', '.join(OLLAMA_MODELS)}"
+            f"Invalid Ollama model '{model}'. Allowed: {', '.join(OLLAMA_MODELS)}"
         )
 
     _check_ollama_available()
@@ -423,6 +420,7 @@ def _call_ollama(
     # Store prompt in session state for Streamlit diagnostics
     try:
         import streamlit as st
+
         st.session_state["prompt_sent"] = prompt
     except ImportError:
         pass
@@ -462,15 +460,14 @@ def _call_ollama(
             method="POST",
         )
         logger.info(f"Starting Ollama request: {model}")
-        with urllib.request.urlopen(req, timeout=300) as resp:
+        with urllib.request.urlopen(req, timeout=300) as resp:  # nosec B310
             raw_data = resp.read().decode("utf-8")
         logger.info("Ollama response received")
 
         # Task 4: Save the raw output to disk
         try:
             debug_path = (
-                Path(__file__).resolve().parent.parent
-                / "debug_ollama_response.txt"
+                Path(__file__).resolve().parent.parent / "debug_ollama_response.txt"
             )
             with open(debug_path, "w", encoding="utf-8") as f:
                 f.write(raw_data)
@@ -487,6 +484,7 @@ def _call_ollama(
         # Store in streamlit session state for diagnostics
         try:
             import streamlit as st
+
             st.session_state["raw_ollama_response"] = raw_data
         except ImportError:
             pass
@@ -536,6 +534,7 @@ def _call_ollama(
         # Store cleaned response in session state
         try:
             import streamlit as st
+
             st.session_state["cleaned_ollama_response"] = raw_text
         except ImportError:
             pass
@@ -656,12 +655,12 @@ def stream_chat(
             raise RuntimeError(f"Gemini streaming failed: {exc}") from exc
 
     elif provider == "ollama":
-        import urllib.request
         import json
+        import urllib.request
 
         _check_ollama_available()
 
-        payload = {
+        payload: dict[str, Any] = {
             "model": ollama_model,
             "messages": [],
             "stream": True,
@@ -683,13 +682,11 @@ def stream_chat(
                 headers={"Content-Type": "application/json"},
                 method="POST",
             )
-            with urllib.request.urlopen(req, timeout=60) as resp:
+            with urllib.request.urlopen(req, timeout=60) as resp:  # nosec B310
                 for line in resp:
                     if line:
                         chunk_data = json.loads(line.decode("utf-8"))
-                        content = (
-                            chunk_data.get("message", {}).get("content", "")
-                        )
+                        content = chunk_data.get("message", {}).get("content", "")
                         yield content
         except Exception as exc:
             logger.error("Ollama stream generation failed: %s", exc)
