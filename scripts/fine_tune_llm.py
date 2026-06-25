@@ -29,7 +29,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Fine-tune open-weights models for DeepDive AI."
     )
-    parser.add_name = parser.add_argument(
+    parser.add_argument(
         "--model_name",
         type=str,
         default="meta-llama/Meta-Llama-3-8B-Instruct",
@@ -120,7 +120,9 @@ def run_training_loop(
     """
     logger.info("Training Loop Configuration Step")
     logger.info("[PLACEHOLDER] Initializing SFTTrainer with LoRA adapters...")
-    logger.info("[PLACEHOLDER] Training for %d epochs (batch_size=%d)...", epochs, batch_size)
+    logger.info(
+        "[PLACEHOLDER] Training for %d epochs (batch_size=%d)...", epochs, batch_size
+    )
     logger.info("[PLACEHOLDER] Saving adapter checkpoints to %s...", output_dir)
     # FUTURE IMPLEMENTATION:
     # from trl import SFTTrainer

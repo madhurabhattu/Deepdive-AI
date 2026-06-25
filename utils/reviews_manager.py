@@ -129,7 +129,7 @@ def render_sidebar_review_form() -> None:
         "Feedback (Optional)",
         key=comment_key,
     )
-    
+
     # GDPR-style consent checkbox
     review_consent = st.sidebar.checkbox(
         "I consent to the collection and public display of my review and name.",
@@ -148,7 +148,9 @@ def render_sidebar_review_form() -> None:
         if not name_val:
             st.sidebar.error("Name cannot be empty.")
         elif not review_consent:
-            st.sidebar.error("You must consent to the storage and display of your review.")
+            st.sidebar.error(
+                "You must consent to the storage and display of your review."
+            )
         else:
             last_sub = st.session_state.get("last_submitted_review")
             if last_sub == (name_val, review_rating, comment_val):
