@@ -31,12 +31,14 @@ def test_review_serialization():
         "rating": 5,
         "comment": "Superb tool!",
         "timestamp": "2026-06-12 10:30",
+        "consent": True,
     }
     r = Review.from_dict(rev_dict)
     assert r.name == "Madhura"
     assert r.rating == 5
     assert r.comment == "Superb tool!"
     assert r.timestamp == "2026-06-12 10:30"
+    assert r.consent is True
     assert r.to_dict() == rev_dict
 
 

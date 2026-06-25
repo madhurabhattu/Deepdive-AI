@@ -240,6 +240,35 @@ pre-commit run gitleaks --all-files
 
 ---
 
+## 🏛️ Project Governance & Community
+
+DeepDive AI is maintained under the Swecha open-source initiative. We are dedicated to digital autonomy and open access to localized technology tools.
+
+* **Privacy Policy:** Read our [Privacy Policy](file:///Users/madhurabhattu/DeepDive-AI/docs/privacy-policy.md) outlining local-first data processing.
+* **Feedback Cycle:** We continuously improve based on user submissions. Read more in our [Feedback Plan](file:///Users/madhurabhattu/DeepDive-AI/docs/feedback-plan.md).
+* **Code of Conduct:** Please review our [Code of Conduct](file:///Users/madhurabhattu/DeepDive-AI/CODE_OF_CONDUCT.md).
+
+---
+
+## 📈 Growth & Outreach Strategy
+
+We aim to increase the footprint of private, local-first research systems. Our strategies include:
+* **User Growth:** Read our [8-Week User Growth & Acquisition Plan](file:///Users/madhurabhattu/DeepDive-AI/docs/growth-strategy.md) and [Geographical Expansion Guide](file:///Users/madhurabhattu/DeepDive-AI/docs/geographical-expansion.md).
+* **Contributor Growth:** Read our [Contributor Growth Strategy](file:///Users/madhurabhattu/DeepDive-AI/docs/contributor-growth-strategy.md) and [Decentralized Outreach Roadmap](file:///Users/madhurabhattu/DeepDive-AI/docs/contributor-geographical-expansion.md).
+
+---
+
+## 📚 Future Roadmap & Contributor Resources
+
+For developers looking to integrate local language data or build next-generation translation systems:
+* **Mobile & PWA Support:** Read our [Mobile Support Roadmap](file:///Users/madhurabhattu/DeepDive-AI/docs/mobile-support.md).
+* **Corpus Upload Integration:** Read the [Corpus CLI Integration Roadmap](file:///Users/madhurabhattu/DeepDive-AI/docs/corpus-cli.md).
+* **Indic LLM Fine-Tuning:** Read the [Indic AI Fine-Tuning Roadmap](file:///Users/madhurabhattu/DeepDive-AI/docs/indic-ai-roadmap.md).
+* **Fine-Tuning Starter Template:** View the Python starter script at [scripts/fine_tune_llm.py](file:///Users/madhurabhattu/DeepDive-AI/scripts/fine_tune_llm.py).
+
+---
+
 ## 📄 License
 
-This project is for educational and research purposes.
+This project is licensed under the terms of the GNU Affero General Public License v3 (AGPL-3.0) — see [LICENSE](file:///Users/madhurabhattu/DeepDive-AI/LICENSE) for details.
+
