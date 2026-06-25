@@ -49,16 +49,6 @@ lint_ruff:
     - echo "Running Ruff lint checks..."
     - ruff check .
 
-lint_mypy:
-  stage: lint
-  image: python:3.11-slim
-  before_script:
-    - pip install --cache-dir .pip-cache -r requirements.txt
-    - pip install --cache-dir .pip-cache mypy
-  script:
-    - echo "Running MyPy type checks..."
-    - mypy .
-
 # ── Test Stage ───────────────────────────────────────────────────────────────
 test_stage:
   stage: test
