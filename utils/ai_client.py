@@ -141,6 +141,7 @@ RULES:
 # ── Ollama supported models ──────────────────────────────────────────────────
 
 OLLAMA_MODELS: list[str] = [
+    "llama3.1:8b",
     "llama3",
     "mistral",
     "gemma",
