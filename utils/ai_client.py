@@ -364,7 +364,7 @@ def _call_gemini(
                 )
 
                 if is_transient and attempt < max_retries:
-                    sleep_time = initial_backoff * (2**attempt) + random.uniform(0, 1)
+                    sleep_time = initial_backoff * (2**attempt) + random.uniform(0, 1)  # nosec B311
                     logger.warning(
                         "Gemini API transient failure with model %s: %s. Retrying in %.2fs...",
                         model_name,
