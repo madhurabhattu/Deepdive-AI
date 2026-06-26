@@ -301,6 +301,9 @@ def _call_gemini(
     RuntimeError
         On API failure or JSON parse error.
     """
+    import random
+    import time
+
     from google import genai
     from google.genai import types
 
@@ -308,31 +311,79 @@ def _call_gemini(
     client = genai.Client(api_key=api_key)
     prompt = _build_prompt(topic, report_lang)
 
-    try:
-        response = client.models.generate_content(
-            model="gemini-2.5-flash-lite",
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                response_mime_type="application/json",
-                temperature=0.7,
-            ),
-        )
-        raw_text: str = response.text or ""
-        raw_text = raw_text.strip()
-        logger.info(
-            "Gemini returned %d chars for topic '%s' [lang=%s]",
-            len(raw_text),
-            topic,
-            report_lang,
-        )
-        json.loads(raw_text)  # sanity check
-        return raw_text
+    models_to_try = ["gemini-2.5-flash-lite", "gemini-2.5-flash"]
+    last_exception = None
 
-    except Exception as exc:
-        logger.error("Gemini API call failed: %s", exc)
-        raise RuntimeError(
-            f"Gemini generation failed. Please try again. (Detail: {exc})"
-        ) from exc
+    for model_name in models_to_try:
+        max_retries = 2
+        initial_backoff = 2.0
+
+        for attempt in range(max_retries + 1):
+            try:
+                logger.info(
+                    "Attempting Gemini call with model: %s (attempt %d/%d)",
+                    model_name,
+                    attempt + 1,
+                    max_retries + 1,
+                )
+                response = client.models.generate_content(
+                    model=model_name,
+                    contents=prompt,
+                    config=types.GenerateContentConfig(
+                        response_mime_type="application/json",
+                        temperature=0.7,
+                    ),
+                )
+                raw_text: str = response.text or ""
+                raw_text = raw_text.strip()
+                logger.info(
+                    "Gemini (%s) returned %d chars for topic '%s' [lang=%s]",
+                    model_name,
+                    len(raw_text),
+                    topic,
+                    report_lang,
+                )
+                json.loads(raw_text)  # sanity check
+                return raw_text
+
+            except Exception as exc:
+                last_exception = exc
+                exc_str = str(exc)
+                is_transient = any(
+                    err in exc_str
+                    for err in [
+                        "503",
+                        "429",
+                        "UNAVAILABLE",
+                        "RESOURCE_EXHAUSTED",
+                        "ResourceExhausted",
+                        "rate limit",
+                        "deadline exceeded",
+                        "timeout",
+                    ]
+                )
+
+                if is_transient and attempt < max_retries:
+                    sleep_time = initial_backoff * (2**attempt) + random.uniform(0, 1)
+                    logger.warning(
+                        "Gemini API transient failure with model %s: %s. Retrying in %.2fs...",
+                        model_name,
+                        exc,
+                        sleep_time,
+                    )
+                    time.sleep(sleep_time)
+                    continue
+
+                logger.warning(
+                    "Gemini API model %s failed: %s. Trying next model if available.",
+                    model_name,
+                    exc,
+                )
+                break
+
+    raise RuntimeError(
+        f"Gemini generation failed on all attempted models. Please try again. (Detail: {last_exception})"
+    ) from last_exception
 
 
 # ── Ollama backend ───────────────────────────────────────────────────────────
@@ -642,17 +693,27 @@ def stream_chat(
         if system_instruction:
             config.system_instruction = system_instruction
 
-        try:
-            response = client.models.generate_content_stream(
-                model="gemini-2.5-flash-lite",
-                contents=prompt,
-                config=config,
-            )
-            for chunk in response:
-                yield chunk.text or ""
-        except Exception as exc:
-            logger.error("Gemini stream generation failed: %s", exc)
-            raise RuntimeError(f"Gemini streaming failed: {exc}") from exc
+        models_to_try = ["gemini-2.5-flash-lite", "gemini-2.5-flash"]
+        last_exc = None
+
+        for model_name in models_to_try:
+            try:
+                response = client.models.generate_content_stream(
+                    model=model_name,
+                    contents=prompt,
+                    config=config,
+                )
+                for chunk in response:
+                    yield chunk.text or ""
+                return
+            except Exception as exc:
+                last_exc = exc
+                logger.warning("Gemini stream failed for model %s: %s", model_name, exc)
+                continue
+
+        raise RuntimeError(
+            f"Gemini streaming failed on all models: {last_exc}"
+        ) from last_exc
 
     elif provider == "ollama":
         import json
