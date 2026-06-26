@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 # Load .env for local development — gracefully skip if python-dotenv is absent
 try:
-    from dotenv import load_dotenv
+    from dotenv import load_dotenv  # type: ignore[import-not-found]
 
     load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 except ImportError:

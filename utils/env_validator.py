@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 # Resolve path to the root .env file and load it if python-dotenv is installed
 try:
-    from dotenv import load_dotenv
+    from dotenv import load_dotenv  # type: ignore[import-not-found]
 
     env_path = Path(__file__).resolve().parent.parent / ".env"
     if env_path.exists():
